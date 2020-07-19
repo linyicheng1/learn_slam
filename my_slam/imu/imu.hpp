@@ -2,8 +2,8 @@
 #define __IMU_H
 #include <cstdio>
 #include <thread>
-#include "lpsensor/LpmsSensorI.h"
-#include "lpsensor/LpmsSensorManagerI.h"
+// #include "lpsensor/LpmsSensorI.h"
+// #include "lpsensor/LpmsSensorManagerI.h"
 #include "thread.h"
 #include <vector>
 #include <string>
@@ -38,21 +38,21 @@ namespace my_slam
     };
 
 // 使用LpSensor作为IMU传感器
-    class LpSensor : public imu,public thread
-    {
-    public:
-        LpSensor() = default;
-        ~LpSensor()= default;
-        LpSensor(std::string dev);
+    // class LpSensor : public imu,public thread
+    // {
+    // public:
+    //     LpSensor() = default;
+    //     ~LpSensor()= default;
+    //     LpSensor(std::string dev);
 
-    private:
-        void correct_data() override;
-        void get_sensor_data() override;
-        LpmsSensorManagerI* manager_;
-        LpmsSensorI* lpms_;
-        ImuData data_;
-        void process() override;
-    };
+    // private:
+    //     void correct_data() override;
+    //     void get_sensor_data() override;
+    //     LpmsSensorManagerI* manager_;
+    //     LpmsSensorI* lpms_;
+    //     ImuData data_;
+    //     void process() override;
+    // };
 
 // 使用数据集作为IMU传感器
     class IMU_data : public imu

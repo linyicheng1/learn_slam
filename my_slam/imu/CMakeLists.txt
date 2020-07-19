@@ -9,7 +9,6 @@ add_library(
 
 target_link_libraries(
         imu
-        LpSensor.so
         pthread
         dl
         rt
