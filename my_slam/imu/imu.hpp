@@ -17,23 +17,18 @@ namespace my_slam
         imu();
         ~imu() = default;
         void init();
-        virtual void correct_data() = 0;
-        virtual void get_sensor_data() = 0;
+        virtual void get_sensor_data(const std::vector<float> &acc,
+                                     const std::vector<float> &gyro,
+                                     const float time) = 0;
         // 部分数据操作接口
         std::vector<float> get_raw_acc() { return raw_acc_data_; }
         std::vector<float> get_raw_gyro() { return raw_gyro_data_; }
-        std::vector<float> get_acc() { return correct_acc_; }
-        std::vector<float> get_gyro() { return correct_gyro_; }
+ 
         float get_time_stamp(){ return time_stamp_;}
-        void set_bias_acc(std::vector<float> bias) { bias_acc_ = bias; }
-        void set_bias_gyro(std::vector<float> bias) { bias_gyro_ = bias; }
+
     public:
         std::vector<float> raw_acc_data_;
         std::vector<float> raw_gyro_data_;
-        std::vector<float> bias_acc_;
-        std::vector<float> bias_gyro_;
-        std::vector<float> correct_acc_;
-        std::vector<float> correct_gyro_;
         float time_stamp_;
     };
 
@@ -55,13 +50,16 @@ namespace my_slam
     // };
 
 // 使用数据集作为IMU传感器
-    class IMU_data : public imu
+    class EuRoC_IMU : public imu
     {
-
+        EuRoC_IMU() = default;
+        ~EuRoC_IMU() = default;
+        EuRoC_IMU(std::string path);
     private:
-        void correct_data() override;
-        void get_sensor_data() override;
+        void get_sensor_data(const std::vector<float> &acc,
+                            const std::vector<float> &gyro,
+                            const float time) override;
+        std::string path_;                    
     };
-
 }
 #endif // __IMU_H

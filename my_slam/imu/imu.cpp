@@ -4,22 +4,25 @@
 namespace my_slam
 {
     
-    // /**
-    //  * @brief 抽象函数imu初始化
-    //  */
-    // imu::imu()
-    // {
-    //     init();
-    // }
-    // void imu::init()
-    // {
-    //     raw_acc_data_.resize(3);
-    //     raw_gyro_data_.resize(3);
-    //     bias_acc_.resize(3);
-    //     bias_gyro_.resize(3);
-    //     correct_acc_.resize(3);
-    //     correct_gyro_.resize(3);
-    // }
+    /**
+     * @brief 抽象函数imu初始化
+     */
+    imu::imu()
+    {
+        init();
+    }
+    void imu::init()
+    {
+        raw_acc_data_.resize(3);
+        raw_gyro_data_.resize(3);
+    }
+    /************************* EuRoC dataSet *************************/
+    EuRoC_IMU::EuRoC_IMU(std::string path):
+    path_(path+"/imu0/data.csv")
+    {
+        
+    }
+
 
     // /**
     //  * @brief 陀螺仪模块 LpSensor构造函数
