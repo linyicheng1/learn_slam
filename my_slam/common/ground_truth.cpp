@@ -20,6 +20,10 @@ namespace my_slam
                 float data_f;
                 Eigen::Vector3f pos;
                 float q[4];
+                // time stamp 
+                std::getline(ss,data_str,',');
+                std::stringstream(data_str)>>data_f;
+                time_stamp_.push_back(data_f);
                 // get first three -> px py pz 
                 for(int i=0;i<3;i++)
                 {
