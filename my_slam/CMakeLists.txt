@@ -9,12 +9,14 @@ find_package(Pangolin 0.4 REQUIRED)
 
 add_subdirectory(./imu)
 add_subdirectory(./cam)
+add_subdirectory(./feature_extract)
 
 include_directories(
         ./common
         ./test
         ./imu
         ./cam 
+        ./feature_extract 
         /usr/include/eigen3
         ${OpenCV_INCLUDE_DIRS}
         ${Pangolin_INCLUDE_DIRS}
@@ -49,6 +51,18 @@ add_executable(test_cam
 target_link_libraries(test_cam
         cam
         common
+        ${OpenCV_LIBS}
+        
+)        
+add_executable(test_feature
+        ./test/test_feature.cpp
+)
+
+target_link_libraries(test_feature
+        fast
+        orb 
+        common
+        cam 
         ${OpenCV_LIBS}
         
 )        

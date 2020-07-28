@@ -28,11 +28,12 @@ namespace my_slam
         virtual inline int getFrameId(){ return frame_id_;}
         inline void updateId(){frame_id_ ++;}
         inline void setUpdateTime(double time){update_time_ = time;}
-
+        inline float get_focal_length(void){return focal_length_;}
         cv::Mat frame_;
     private:
         static long long int frame_id_;
         double update_time_;
+        float focal_length_;
     };
 
     // 由虚类派生成四个相机类代表相机、图片数据和视频数据
