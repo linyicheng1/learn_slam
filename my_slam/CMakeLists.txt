@@ -26,6 +26,8 @@ add_library(
         common
         ./common/ground_truth.cpp
         ./common/visualization.cpp 
+        ./common/graph_base/feature2d.cpp 
+        ./common/graph_base/frame.cpp 
 )
 target_link_libraries(common
         ${Pangolin_LIBRARIES}
@@ -65,4 +67,17 @@ target_link_libraries(test_feature
         cam 
         ${OpenCV_LIBS}
         
-)        
+)   
+
+add_executable(test_filter
+        ./test/test_filter.cpp
+)
+
+target_link_libraries(test_filter
+        fast
+        orb 
+        common
+        cam 
+        ${OpenCV_LIBS}
+        
+)      

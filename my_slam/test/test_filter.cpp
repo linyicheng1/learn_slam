@@ -28,8 +28,14 @@ int main()
     config.cell_size_ = 32;
     extract_fast *test_fast = new extract_fast(config);
     // extract_orb * test_orb = new extract_orb(config);
+    int cnt = 0;
     while (true)
     {
+        cnt ++;
+        if(cnt>=40)
+        {
+            break;
+        }
         cv::Mat cam_0,cam_1;
         cam_0 = test->getFrame();
         cam_1 = test->getFrame2();
@@ -72,6 +78,6 @@ int main()
         // }
         // cv::imshow("orb",show2);
 
-        cv::waitKey(30);
+        cv::waitKey(100);
     }
 }
