@@ -54,7 +54,7 @@ EQUALS = =
 CMAKE_SOURCE_DIR = /home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast
 
 # The top-level build directory on which CMake was run.
-CMAKE_BINARY_DIR = /home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build
+CMAKE_BINARY_DIR = /home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin
 
 #=============================================================================
 # Targets provided globally by CMake.
@@ -129,9 +129,9 @@ install/fast: preinstall/fast
 
 # The main all target
 all: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/CMakeFiles /home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/CMakeFiles/progress.marks
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/CMakeFiles /home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/CMakeFiles/progress.marks
 	$(MAKE) -f CMakeFiles/Makefile2 all
-	$(CMAKE_COMMAND) -E cmake_progress_start /home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/CMakeFiles 0
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/CMakeFiles 0
 .PHONY : all
 
 # The main clean target

@@ -79,5 +79,4 @@ target_link_libraries(test_filter
         common
         cam 
         ${OpenCV_LIBS}
-        
 )      

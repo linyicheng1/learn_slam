@@ -1,8 +1,8 @@
-/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/CMakeFiles/install/strip.dir
-/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/CMakeFiles/install/local.dir
-/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/CMakeFiles/fast_test.dir
-/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/CMakeFiles/edit_cache.dir
-/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/CMakeFiles/fast.dir
-/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/CMakeFiles/rebuild_cache.dir
-/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/CMakeFiles/list_install_components.dir
-/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/CMakeFiles/install.dir
+/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/CMakeFiles/install/strip.dir
+/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/CMakeFiles/install/local.dir
+/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/CMakeFiles/fast_test.dir
+/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/CMakeFiles/edit_cache.dir
+/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/CMakeFiles/fast.dir
+/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/CMakeFiles/rebuild_cache.dir
+/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/CMakeFiles/list_install_components.dir
+/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/CMakeFiles/install.dir

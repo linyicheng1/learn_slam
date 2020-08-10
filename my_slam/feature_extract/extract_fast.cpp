@@ -3,26 +3,43 @@
 #include <stdint.h>
 #include <math.h>
 #include <vector>
-#include <stdio.h>
+
 namespace my_slam
 {
-
     std::vector<feature2d> extract_fast::extract(pic_byte* img, int img_width, int img_height,int level,frame* Frame)
-    {   
+    {
+#ifdef USE_OPENCV
+        cv::Ptr<cv::FastFeatureDetector> detector = cv::FastFeatureDetector::create(0);
+        std::vector<cv::KeyPoint> keypointsD;
+        cv::Mat src(img_height,img_width,0);
+        src.data = img;
+
+        const int scale = (1<<level);// scale = 2^{level}
+        detector->detect(src, keypointsD);
+        for(auto kp:keypointsD)
+        {
+            int k = static_cast<int>((kp.pt.y*scale)/cell_size_)*grid_n_cols_
+                          + static_cast<int>((kp.pt.x*scale)/cell_size_);
+            k = (int)fmax(0.f,fmin(k,config_.grid_n_cols_*config_.grid_n_rows_-1));
+            if(grid_occupancy_[k])
+                continue;
+            if(kp.response>corners_->at(k).score)
+                corners_->at(k) = Corner(kp.pt.x*scale, kp.pt.y*scale, kp.response, level, 0.0f);
+        }
+        return std::vector<feature2d>();
+#else
         std::vector<fast::fast_xy> fast_corners;
         std::vector<feature2d> features;
         const int scale = (1<<level);// scale = 2^{level}
-
 
         fast::fast_corner_detect_10_sse2(img,img_width,img_height,img_width,8,fast_corners);
         std::vector<int> scores, nm_corners;
         fast::fast_corner_score_10(img, img_width, fast_corners, 20, scores);
         fast::fast_nonmax_3x3(fast_corners, scores, nm_corners);
 
-        for(auto it=nm_corners.begin(), ite=nm_corners.end(); it!=ite; ++it)
+        for(int & nm_corner : nm_corners)
         {
-
-            fast::fast_xy& xy = fast_corners.at(*it);
+            fast::fast_xy& xy = fast_corners.at(nm_corner);
             const int k = static_cast<int>((xy.y*scale)/cell_size_)*grid_n_cols_
                   + static_cast<int>((xy.x*scale)/cell_size_);
             if(grid_occupancy_[k])
@@ -32,6 +49,7 @@ namespace my_slam
                 corners_->at(k) = Corner(xy.x*scale, xy.y*scale, score, level, 0.0f);
         }
         return std::vector<feature2d>();
+#endif
     }
 
     std::vector<feature2d> extract_fast::extract(ImgPyr pyramid,frame* Frame)
@@ -57,6 +75,7 @@ namespace my_slam
         });
         return features_;
         resetGrid();
+
     }
 
     extract_fast::extract_fast(feature_extract_config config):

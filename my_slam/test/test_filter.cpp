@@ -40,7 +40,7 @@ int main()
         }
         cv::cvtColor(cam_0,cam_0,CV_BGR2GRAY);
         cv::imshow("cam 0 ",cam_0);
-
+        std::cout<<"type:"<<cam_0.type()<<std::endl;
         //std::cout<<"cols"<<cam_0.cols<<"rows"<<cam_0.rows;
         clock_t start,end;
         start = clock();
@@ -87,8 +87,8 @@ int main()
 //        cv::imshow("fast",show);
 //        cv::imshow("pyramid 1",show1);
 //        cv::imshow("pyramid 2",show2);
-//        cv::imshow("pyramid 3",show3);
-//        cv::imshow("pyramid 4",show4);
+////        cv::imshow("pyramid 3",show3);
+////        cv::imshow("pyramid 4",show4);
 //        cv::waitKey(100);
     }
     std::cout<<"cost time:"<<time*5<<"ms"<<std::endl;

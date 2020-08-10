@@ -64,7 +64,7 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
   if(CMAKE_ERROR_ON_ABSOLUTE_INSTALL_DESTINATION)
     message(FATAL_ERROR "ABSOLUTE path INSTALL DESTINATION forbidden (by caller): ${CMAKE_ABSOLUTE_DESTINATION_FILES}")
   endif()
-file(INSTALL DESTINATION "/usr/local/lib" TYPE SHARED_LIBRARY FILES "/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/libfast.so")
+file(INSTALL DESTINATION "/usr/local/lib" TYPE SHARED_LIBRARY FILES "/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/libfast.so")
   if(EXISTS "$ENV{DESTDIR}/usr/local/lib/libfast.so" AND
      NOT IS_SYMLINK "$ENV{DESTDIR}/usr/local/lib/libfast.so")
     if(CMAKE_INSTALL_DO_STRIP)
@@ -81,5 +81,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/lyc/slam/learn_slam/my_slam/thirdPart_lib/fast/bin/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
