@@ -2,7 +2,7 @@
 #define __COMMON_H
 
 #include <vector>
-
+#include <ctime>
 namespace my_slam
 {
     typedef unsigned char pic_byte;

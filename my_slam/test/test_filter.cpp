@@ -5,6 +5,7 @@
 #include "ground_truth.h"
 #include "visualization.h"
 #include "extract_orb.hpp"
+#include <time.h>
 #include "../common/graph_base/frame.hpp"
 
 using namespace my_slam;
@@ -27,6 +28,7 @@ int main()
     extract_fast *test_fast = new extract_fast(config);
 
     int cnt = 0;
+    double time = 0;
     while (cnt<200)
     {
         cnt ++;
@@ -40,9 +42,12 @@ int main()
         cv::imshow("cam 0 ",cam_0);
 
         //std::cout<<"cols"<<cam_0.cols<<"rows"<<cam_0.rows;
+        clock_t start,end;
+        start = clock();
         frame *test_frame = new frame(cam_0.data,cam_0.cols,cam_0.rows,2);
         std::vector<feature2d> points = test_fast->extract(test_frame->pyramid_,test_frame);
-
+        end = clock();
+        time += double(end-start)/CLOCKS_PER_SEC;
         ///////////////////////////////////////
         cv::Mat show = cam_0.clone();
         cv::Mat show1(test_frame->pyramid_[0].rows,test_frame->pyramid_[0].cols,cam_0.type());
@@ -79,11 +84,12 @@ int main()
                 break;
             }
         }
-        cv::imshow("fast",show);
-        cv::imshow("pyramid 1",show1);
-        cv::imshow("pyramid 2",show2);
+//        cv::imshow("fast",show);
+//        cv::imshow("pyramid 1",show1);
+//        cv::imshow("pyramid 2",show2);
 //        cv::imshow("pyramid 3",show3);
 //        cv::imshow("pyramid 4",show4);
-        cv::waitKey(100);
+//        cv::waitKey(100);
     }
+    std::cout<<"cost time:"<<time*5<<"ms"<<std::endl;
 }

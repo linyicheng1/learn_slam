@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <math.h>
 #include <vector>
-
+#include <stdio.h>
 namespace my_slam
 {
 
@@ -13,6 +13,7 @@ namespace my_slam
         std::vector<feature2d> features;
         const int scale = (1<<level);// scale = 2^{level}
 
+
         fast::fast_corner_detect_10_sse2(img,img_width,img_height,img_width,8,fast_corners);
         std::vector<int> scores, nm_corners;
         fast::fast_corner_score_10(img, img_width, fast_corners, 20, scores);
@@ -20,6 +21,7 @@ namespace my_slam
 
         for(auto it=nm_corners.begin(), ite=nm_corners.end(); it!=ite; ++it)
         {
+
             fast::fast_xy& xy = fast_corners.at(*it);
             const int k = static_cast<int>((xy.y*scale)/cell_size_)*grid_n_cols_
                   + static_cast<int>((xy.x*scale)/cell_size_);
@@ -29,8 +31,7 @@ namespace my_slam
             if(score > corners_->at(k).score)
                 corners_->at(k) = Corner(xy.x*scale, xy.y*scale, score, level, 0.0f);
         }
-
-        
+        return std::vector<feature2d>();
     }
 
     std::vector<feature2d> extract_fast::extract(ImgPyr pyramid,frame* Frame)
