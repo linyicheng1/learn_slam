@@ -29,18 +29,7 @@ namespace my_slam
             if(score > corners_->at(k).score)
                 corners_->at(k) = Corner(xy.x*scale, xy.y*scale, score, level, 0.0f);
         }
-        // 对于有足够高的得分的角点构造成特征点
-        std::for_each(corners_->begin(), corners_->end(), [&](Corner& c)
-        {// 遍历所有的角点
-            // 要求得分大于阈值
-            if(c.score > threshold_)
-            {
-                // 构造特征点
-                // 1、所属帧 2、特征点位置 3、金字塔层数
-                feature2d feature(Frame,c.x,c.y,c.level,c.score,c.angle);
-                features_.push_back(feature);
-            }
-        });
+
         
     }
 
@@ -53,6 +42,18 @@ namespace my_slam
         {
             extract(pyramid.at(i).data,pyramid.at(i).cols,pyramid.at(i).rows,i,Frame);
         }
+        // 对于有足够高的得分的角点构造成特征点
+        std::for_each(corners_->begin(), corners_->end(), [&](Corner& c)
+        {// 遍历所有的角点
+            // 要求得分大于阈值
+            if(c.score > threshold_)
+            {
+                // 构造特征点
+                // 1、所属帧 2、特征点位置 3、金字塔层数
+                feature2d feature(Frame,c.x,c.y,c.level,c.score,c.angle);
+                features_.push_back(feature);
+            }
+        });
         return features_;
         resetGrid();
     }

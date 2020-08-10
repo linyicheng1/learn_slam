@@ -10,9 +10,9 @@ namespace my_slam
     {
     public:
         pic_byte* data;
-        short cols;
-        short rows;
-        picture(pic_byte* _data,short _cols,short _rows)
+        int cols;
+        int rows;
+        picture(pic_byte* _data,int _cols,int _rows)
         {
             data = _data;
             cols = _cols;
