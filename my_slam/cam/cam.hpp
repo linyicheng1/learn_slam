@@ -83,6 +83,24 @@ namespace my_slam
         void loadImages(const std::string &strImagePath, const std::string &strPathTimes,
                 std::vector<std::string> &vstrImages, std::vector<double> &vTimeStamps);
     };
+
+    // svo 深度滤波器
+    class depth_data:public camera
+    {
+    public:
+        depth_data() = default;
+        ~depth_data() = default;
+        depth_data(std::string pic_path);
+        cv::Mat getFrame() override;
+        int getType() override{ return PIC;}
+    private:
+        std::string cam_path_;
+        std::string pic_path_;
+        std::vector<std::string> cam_strImages_;
+        int cam_cnt_;
+
+        void loadImages(const std::string &strImagePath, const std::string &strPathTimes,std::vector<std::string> &vstrImages);
+    };
 }
 
 

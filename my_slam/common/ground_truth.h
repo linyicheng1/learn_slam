@@ -32,6 +32,24 @@ namespace my_slam
         std::vector<Eigen::Quaternionf> q_;
         std::vector<float> time_stamp_;
     };
+
+    class ground_truth_depth
+    {
+    public:
+        ground_truth_depth(std::string path);
+        std::vector<Eigen::Vector3f> get_pos(void) const
+        {
+            return pos_;
+        }
+        std::vector<Eigen::Quaternionf> get_quaternion(void) const
+        {
+            return q_;
+        }
+    private:
+        std::string path_;
+        std::vector<Eigen::Vector3f> pos_;
+        std::vector<Eigen::Quaternionf> q_;
+    };
 };
 
 #endif //__GROUND_TRUTH_H

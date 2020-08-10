@@ -53,7 +53,7 @@ namespace my_slam
         { 
             for (int j=0; j<out_width; j++)
             {
-                *p = (pic_byte)((short)top[0] + top[1] + bottom[0] + bottom[1])/4;
+                *p = top[0];
                 p++;
                 top += 2;
                 bottom += 2;
@@ -64,5 +64,4 @@ namespace my_slam
             bottom += stride;
         }
     }
-  
 };

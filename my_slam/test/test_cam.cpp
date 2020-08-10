@@ -5,6 +5,7 @@
 
 using namespace my_slam;
 
+#ifdef EUROC
 int main()
 {
     EuRoC *test;
@@ -24,4 +25,28 @@ int main()
         cv::imshow("cam 1 ",cam_1);
         cv::waitKey(30);
     }
+}
+#endif
+
+int main()
+{
+    depth_data test("/home/lyc/dataSet/test_data/");
+
+    ground_truth_depth gt("/home/lyc/dataSet/test_data/");
+    visualization vis;
+    vis.set_pos(gt.get_pos());
+    vis.set_quaternion(gt.get_quaternion());
+    int cnt = 0;
+    while (cnt<200)
+    {
+        cv::Mat cam = test.getFrame();
+        if(!cam.empty())
+        {
+            std::cout<<"cnt:"<<cnt<<std::endl;
+            cv::imshow("cam",cam);
+        }
+        cv::waitKey(200);
+        cnt++;
+    }
+    return 1;
 }

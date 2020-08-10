@@ -55,5 +55,42 @@ namespace my_slam
             }
         }
     }
+    /************************* depth dataSet *************************/
 
+    depth_data::depth_data(std::string pic_path):
+    camera(),
+    pic_path_(pic_path),
+    cam_path_(pic_path + "first_200_frames_traj_over_table_input_sequence.txt"),
+    cam_cnt_(0)
+    {
+        loadImages(cam_path_,pic_path_,cam_strImages_);
+    }
+
+    void depth_data::loadImages(const std::string &strImagePath,const std::string &strPathTimes,std::vector<std::string> &vstrImages)
+    {
+        std::ifstream fTimes;
+        std::string s;
+        fTimes.open(strImagePath.c_str());
+        vstrImages.reserve(5000);
+        std::getline(fTimes,s);
+        while(!fTimes.eof())
+        {
+
+            if(!s.empty())
+            {
+                std::stringstream ss(s);
+                std::string time;
+                std::getline(ss,time,' ');
+                vstrImages.push_back(strPathTimes + "images/" + time);
+            }
+            std::getline(fTimes,s);
+        }
+    }
+
+    cv::Mat depth_data::getFrame()
+    {
+        auto tmp = cv::imread(cam_strImages_.at(getFrameId()));
+        updateId();
+        return tmp;
+    }
 }
