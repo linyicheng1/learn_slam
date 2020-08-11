@@ -36,6 +36,7 @@ namespace my_slam
         extract_fast(feature_extract_config config);
         std::vector<feature2d> extract(pic_byte* img, int img_width, int img_height,int level ,frame* Frame) override;
         std::vector<feature2d> extract(ImgPyr pyramid,frame* Frame) override;
+        void setExistingFeatures(std::vector<feature2d> pts);
         void resetGrid();
     private:
         feature_extract_config config_;

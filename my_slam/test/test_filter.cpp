@@ -20,7 +20,7 @@ int main()
     vis.set_quaternion(gt.get_quaternion());
 
     ///////////////////////////////////////////
-    feature_extract_config  config;
+    feature_extract_config  config{};
     config.grid_n_cols_ = 40;
     config.grid_n_rows_ = 30;
     config.levels_ = 1;

@@ -131,4 +131,15 @@ namespace my_slam
         dXY = dXY / (2.0 * box_area);
         return 0.5 * (dXX + dYY - sqrt( (dXX + dYY) * (dXX + dYY) - 4 * (dXX * dYY - dXY * dXY) ));
     }
+
+    void extract_fast::setExistingFeatures(std::vector<feature2d> pts)
+    {
+        resetGrid();
+        for(auto pt:pts)
+        {
+            const int k = static_cast<int>((pt.y_)/cell_size_)*grid_n_cols_
+                         + static_cast<int>((pt.x_)/cell_size_);
+            grid_occupancy_[k] = true;
+        }
+    }
 };

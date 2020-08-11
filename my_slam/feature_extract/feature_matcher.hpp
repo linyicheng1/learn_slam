@@ -4,6 +4,8 @@
 #include "eigen3/Eigen/Core"
 #include "../cam/cam.hpp"
 #include "eigen3/Eigen/Geometry"
+#include "graph_base/feature2d.hpp"
+#include "graph_base/frame.hpp"
 
 namespace my_slam
 {
@@ -35,9 +37,19 @@ namespace my_slam
                 uint8_t* patch);
     } // namespace warp
 
-    class matcher
+    class feature_matcher
     {
-
+    public:
+        feature_matcher() = default;
+        ~feature_matcher() = default;
+        bool findEpipolarMatchDirect(
+                const frame& ref_frame,
+                const frame& cur_frame,
+                const feature2d& ref_ftr,
+                const double d_estimate,
+                const double d_min,
+                const double d_max,
+                double& depth);
     };
 };
 #endif // __FEATURE_MATCHER_H

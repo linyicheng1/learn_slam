@@ -68,5 +68,144 @@ namespace my_slam
             }
         }
     };
+
+    bool feature_matcher::findEpipolarMatchDirect(const frame &ref_frame, const frame &cur_frame, const feature2d &ref_ftr,
+                                             const double d_estimate, const double d_min, const double d_max,
+                                             double &depth)
+    {
+        SE3 T_cur_ref = cur_frame.T_f_w_ * ref_frame.T_f_w_.inverse();
+        int zmssd_best = PatchScore::threshold();
+        Vector2d uv_best;
+
+        // Compute start and end of epipolar line in old_kf for match search, on unit plane!
+        Vector2d A = vk::project2d(T_cur_ref * (ref_ftr.f*d_min));
+        Vector2d B = vk::project2d(T_cur_ref * (ref_ftr.f*d_max));
+        epi_dir_ = A - B;
+
+        // Compute affine warp matrix
+        warp::getWarpMatrixAffine(
+                *ref_frame.cam_, *cur_frame.cam_, ref_ftr.px, ref_ftr.f,
+                d_estimate, T_cur_ref, ref_ftr.level, A_cur_ref_);
+
+        // feature pre-selection
+        reject_ = false;
+        if(ref_ftr.type == Feature::EDGELET && options_.epi_search_edgelet_filtering)
+        {
+            const Vector2d grad_cur = (A_cur_ref_ * ref_ftr.grad).normalized();
+            const double cosangle = fabs(grad_cur.dot(epi_dir_.normalized()));
+            if(cosangle < options_.epi_search_edgelet_max_angle) {
+                reject_ = true;
+                return false;
+            }
+        }
+
+        search_level_ = warp::getBestSearchLevel(A_cur_ref_, Config::nPyrLevels()-1);
+
+        // Find length of search range on epipolar line
+        Vector2d px_A(cur_frame.cam_->world2cam(A));
+        Vector2d px_B(cur_frame.cam_->world2cam(B));
+        epi_length_ = (px_A-px_B).norm() / (1<<search_level_);
+
+        // Warp reference patch at ref_level
+        warp::warpAffine(A_cur_ref_, ref_frame.img_pyr_[ref_ftr.level], ref_ftr.px,
+                         ref_ftr.level, search_level_, halfpatch_size_+1, patch_with_border_);
+        createPatchFromPatchWithBorder();
+
+        if(epi_length_ < 2.0)
+        {
+            px_cur_ = (px_A+px_B)/2.0;
+            Vector2d px_scaled(px_cur_/(1<<search_level_));
+            bool res;
+            if(options_.align_1d)
+                res = feature_alignment::align1D(
+                        cur_frame.img_pyr_[search_level_], (px_A-px_B).cast<float>().normalized(),
+                        patch_with_border_, patch_, options_.align_max_iter, px_scaled, h_inv_);
+            else
+                res = feature_alignment::align2D(
+                        cur_frame.img_pyr_[search_level_], patch_with_border_, patch_,
+                        options_.align_max_iter, px_scaled);
+            if(res)
+            {
+                px_cur_ = px_scaled*(1<<search_level_);
+                if(depthFromTriangulation(T_cur_ref, ref_ftr.f, cur_frame.cam_->cam2world(px_cur_), depth))
+                    return true;
+            }
+            return false;
+        }
+
+        size_t n_steps = epi_length_/0.7; // one step per pixel
+        Vector2d step = epi_dir_/n_steps;
+
+        if(n_steps > options_.max_epi_search_steps)
+        {
+            printf("WARNING: skip epipolar search: %zu evaluations, px_lenght=%f, d_min=%f, d_max=%f.\n",
+                   n_steps, epi_length_, d_min, d_max);
+            return false;
+        }
+
+        // for matching, precompute sum and sum2 of warped reference patch
+        int pixel_sum = 0;
+        int pixel_sum_square = 0;
+        PatchScore patch_score(patch_);
+
+        // now we sample along the epipolar line
+        Vector2d uv = B-step;
+        Vector2i last_checked_pxi(0,0);
+        ++n_steps;
+        for(size_t i=0; i<n_steps; ++i, uv+=step)
+        {
+            Vector2d px(cur_frame.cam_->world2cam(uv));
+            Vector2i pxi(px[0]/(1<<search_level_)+0.5,
+                         px[1]/(1<<search_level_)+0.5); // +0.5 to round to closest int
+
+            if(pxi == last_checked_pxi)
+                continue;
+            last_checked_pxi = pxi;
+
+            // check if the patch is full within the new frame
+            if(!cur_frame.cam_->isInFrame(pxi, patch_size_, search_level_))
+                continue;
+
+            // TODO interpolation would probably be a good idea
+            uint8_t* cur_patch_ptr = cur_frame.img_pyr_[search_level_].data
+                                     + (pxi[1]-halfpatch_size_)*cur_frame.img_pyr_[search_level_].cols
+                                     + (pxi[0]-halfpatch_size_);
+            int zmssd = patch_score.computeScore(cur_patch_ptr, cur_frame.img_pyr_[search_level_].cols);
+
+            if(zmssd < zmssd_best) {
+                zmssd_best = zmssd;
+                uv_best = uv;
+            }
+        }
+
+        if(zmssd_best < PatchScore::threshold())
+        {
+            if(options_.subpix_refinement)
+            {
+                px_cur_ = cur_frame.cam_->world2cam(uv_best);
+                Vector2d px_scaled(px_cur_/(1<<search_level_));
+                bool res;
+                if(options_.align_1d)
+                    res = feature_alignment::align1D(
+                            cur_frame.img_pyr_[search_level_], (px_A-px_B).cast<float>().normalized(),
+                            patch_with_border_, patch_, options_.align_max_iter, px_scaled, h_inv_);
+                else
+                    res = feature_alignment::align2D(
+                            cur_frame.img_pyr_[search_level_], patch_with_border_, patch_,
+                            options_.align_max_iter, px_scaled);
+                if(res)
+                {
+                    px_cur_ = px_scaled*(1<<search_level_);
+                    if(depthFromTriangulation(T_cur_ref, ref_ftr.f, cur_frame.cam_->cam2world(px_cur_), depth))
+                        return true;
+                }
+                return false;
+            }
+            px_cur_ = cur_frame.cam_->world2cam(uv_best);
+            if(depthFromTriangulation(T_cur_ref, ref_ftr.f, vk::unproject2d(uv_best).normalized(), depth))
+                return true;
+        }
+        return false;
+    }
 };
 
