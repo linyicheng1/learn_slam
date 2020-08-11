@@ -10,6 +10,7 @@ find_package(Pangolin 0.4 REQUIRED)
 add_subdirectory(./imu)
 add_subdirectory(./cam)
 add_subdirectory(./feature_extract)
+add_subdirectory(./depth_filter)
 
 include_directories(
         ./common
@@ -77,6 +78,7 @@ target_link_libraries(test_filter
         fast
         orb 
         common
-        cam 
+        cam
+        depth_filter
         ${OpenCV_LIBS}
 )      

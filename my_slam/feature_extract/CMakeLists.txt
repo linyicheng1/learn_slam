@@ -10,6 +10,7 @@ add_library(
         fast
         extract.cpp 
         extract_fast.cpp
+        feature_alignment.cpp
 )
 
 target_link_libraries(fast

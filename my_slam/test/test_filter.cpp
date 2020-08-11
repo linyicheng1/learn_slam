@@ -84,12 +84,12 @@ int main()
                 break;
             }
         }
-//        cv::imshow("fast",show);
-//        cv::imshow("pyramid 1",show1);
-//        cv::imshow("pyramid 2",show2);
-////        cv::imshow("pyramid 3",show3);
-////        cv::imshow("pyramid 4",show4);
-//        cv::waitKey(100);
+        cv::imshow("fast",show);
+        cv::imshow("pyramid 1",show1);
+        cv::imshow("pyramid 2",show2);
+//        cv::imshow("pyramid 3",show3);
+//        cv::imshow("pyramid 4",show4);
+        cv::waitKey(100);
     }
     std::cout<<"cost time:"<<time*5<<"ms"<<std::endl;
 }

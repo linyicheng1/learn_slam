@@ -6,7 +6,7 @@
 #include "../thirdPart_lib/fast/include/fast/fast.h"
 #include "common.hpp"
 
-#define USE_OPENCV
+//#define USE_OPENCV
 
 #ifdef USE_OPENCV
 #include "opencv2/opencv.hpp"
