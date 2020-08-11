@@ -11,6 +11,7 @@ add_library(
         extract.cpp 
         extract_fast.cpp
         feature_alignment.cpp
+        feature_matcher.cpp
 )
 
 target_link_libraries(fast
