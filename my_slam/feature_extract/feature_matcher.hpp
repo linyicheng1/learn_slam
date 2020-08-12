@@ -43,13 +43,19 @@ namespace my_slam
         feature_matcher() = default;
         ~feature_matcher() = default;
         bool findEpipolarMatchDirect(
-                const frame& ref_frame,
-                const frame& cur_frame,
-                const feature2d& ref_ftr,
+                const picture& ref_frame,
+                const picture& cur_frame,
+                const Eigen::Quaternionf q,
+                const Eigen::Vector3f t,
+                const Eigen::Vector3f& ref_ftr,
                 const double d_estimate,
                 const double d_min,
                 const double d_max,
                 double& depth);
+
+    private:
+        Eigen::Vector2f epi_dir_;
+        Eigen::Vector2f project2d(Eigen::Vector3f pt_f);
     };
 };
 #endif // __FEATURE_MATCHER_H

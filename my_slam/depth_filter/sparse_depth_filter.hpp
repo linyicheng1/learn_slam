@@ -25,14 +25,14 @@ namespace my_slam
         static int seed_counter;
         int batch_id;
         int id;
-        feature2d* ftr;
+        feature2d ftr;
         float a;
         float b;
         float mu;
         float z_range;
         float sigma2;
         Eigen::Matrix2d patch_cov;
-        Seed(feature2d* ftr, float depth_mean, float depth_min);
+        Seed(feature2d m_ftr, float depth_mean, float depth_min);
     };
 
     class sparse_depth_filter
@@ -62,7 +62,9 @@ namespace my_slam
         sparse_depth_filter();
         explicit sparse_depth_filter(feature_extract_config config);
         ~sparse_depth_filter() = default;
+        void set_cam(camera* cam){cam_ = cam;}
         void add_frame(const picture& pic,const Eigen::Quaternionf& q,Eigen::Vector3f t);
+        std::vector<Eigen::Vector3f> get_depth_filter();
     private:
         bool is_key_frame();
         bool is_visible(Seed seed);
@@ -70,7 +72,8 @@ namespace my_slam
 
         feature_extract_config  config_;
         extract_fast *fast_;
-        std::list<Seed, Eigen::aligned_allocator<Seed> > seeds_;
+        camera* cam_;
+        std::list<Seed> seeds_;
         frame *frame_;
         std::vector<feature2d> search_pt_;
         feature_matcher matcher_;

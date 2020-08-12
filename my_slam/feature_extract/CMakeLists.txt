@@ -15,6 +15,7 @@ add_library(
 )
 
 target_link_libraries(fast
+        common
         ${OpenCV_LIBS}
         ${CMAKE_SOURCE_DIR}/thirdPart_lib/fast/bin/libfast.so
 )

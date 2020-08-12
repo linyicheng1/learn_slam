@@ -2,6 +2,7 @@
 #define __FRAME_H
 #include "../common.hpp"
 #include "feature2d.hpp"
+#include "../cam/cam.hpp"
 
 namespace my_slam
 {
@@ -17,9 +18,11 @@ namespace my_slam
 
         //// 
         void set_key_frame(void){key_frame_ = true;}
+        void set_cam(camera *cam){cam_ = cam;}
         void set_extract_feature(std::vector<feature2d> features){features_ = features;}
         static long int id_;
         ImgPyr pyramid_;
+        camera *cam_;
     private:
         bool key_frame_;
         picture pic_;

@@ -5,6 +5,7 @@
 #include <vector>
 #include <fstream>
 #include <iostream>
+#include "eigen3/Eigen/Core"
 
 namespace my_slam
 {
@@ -18,6 +19,13 @@ namespace my_slam
     class camera
     {
     public:
+        struct
+        {
+            float fx;
+            float fy;
+            float u0;
+            float v0;
+        }cam_param;
         // default function
         camera() = default;
         ~camera() = default;
@@ -29,11 +37,27 @@ namespace my_slam
         inline void updateId(){frame_id_ ++;}
         inline void setUpdateTime(double time){update_time_ = time;}
         inline float get_focal_length(void){return focal_length_;}
+        Eigen::Vector2f f2c(Eigen::Vector3f f)
+        {
+            Eigen::Vector2f c;
+            c[0] = cam_param.fx*f[0]/f[2] + cam_param.u0;
+            c[1] = cam_param.fy*f[1]/f[2] + cam_param.v0;
+            return c;
+        }
+        Eigen::Vector3f c2f(Eigen::Vector2f c)
+        {
+            Eigen::Vector3f f;
+            f[0] = (c[0] - cam_param.u0)/cam_param.fx;
+            f[1] = (c[1] - cam_param.v0)/cam_param.fy;
+            f[2] = 1;
+            return f;
+        }
         cv::Mat frame_;
     private:
         static long long int frame_id_;
         double update_time_;
         float focal_length_;
+
     };
 
     // 由虚类派生成四个相机类代表相机、图片数据和视频数据

@@ -64,6 +64,11 @@ namespace my_slam
     cam_cnt_(0)
     {
         loadImages(cam_path_,pic_path_,cam_strImages_);
+        // get inner param
+        cam_param.fx = 481.2f;
+        cam_param.fy = -480.0f;
+        cam_param.u0 = 319.5f;
+        cam_param.v0 = 239.5f;
     }
 
     void depth_data::loadImages(const std::string &strImagePath,const std::string &strPathTimes,std::vector<std::string> &vstrImages)

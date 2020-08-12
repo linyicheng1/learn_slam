@@ -11,11 +11,21 @@ namespace my_slam
     {
         for (size_t i = 0; i < pos_.size(); i++) 
         {
-            glColor3f(1.0, 1.0, 1.0);
+            glColor3f(0.0, 1.0, 0.0);
             glBegin(GL_LINES);
             auto p1 = pos_[i], p2 = pos_[i + 1];
             glVertex3f(p1[0], p1[1], p1[2]);
             glVertex3f(p2[0], p2[1], p2[2]);
+            glEnd();
+        }
+    }
+    void visualization::draw_depth_map()
+    {
+        for(auto & i : depth_map_)
+        {
+            glColor3f(0.0, 0.0, 1.0);
+            glBegin(GL_POINTS);
+            glVertex3f(i[0], i[1], i[2]);
             glEnd();
         }
     }
@@ -48,6 +58,7 @@ namespace my_slam
     {
         draw_trajectory();
         draw_pose();
+        draw_depth_map();
     }
 
     visualization::~visualization()

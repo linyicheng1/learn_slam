@@ -5,3 +5,7 @@ add_library(
         depth_filter
         sparse_depth_filter.cpp
 )
+target_link_libraries(
+        depth_filter
+        fast
+)
