@@ -34,11 +34,10 @@ namespace my_slam
     {
         if(seeds_.empty())
         {//init
+            last_kf_ = pic;
+            last_kf_q_ = current_frame_q_;
+            last_kf_t_ = current_frame_t_;
             initializeSeeds(pic,10,0.01);
-            return;
-        }
-        else
-        {
             return;
         }
         current_frame_ = pic;
@@ -46,10 +45,10 @@ namespace my_slam
         current_frame_t_ = std::move(t);
         size_t n_updates=0, n_failed_matches=0, n_seeds = seeds_.size();
         // 当前相机焦距
-        const double focal_length = config_.focal_length_;
-        double px_noise = 1.0;
+        const float focal_length = cam_->get_focal_length();
+        float px_noise = 1.0;
         // 设置当前误差为一个像素点引起的角度误差
-        double px_error_angle = atan(px_noise/(2.0*focal_length))*2.0;
+        float px_error_angle = atan(px_noise/(2.0*focal_length))*2.0;
 
         auto it=seeds_.begin();
         while (it!=seeds_.end())
@@ -75,21 +74,21 @@ namespace my_slam
             float z_inv_max = fmax(it->mu - sqrt(it->sigma2), 0.00000001f);
             double z;
 
-//            // 进行极线搜索
-//            if(!matcher_.findEpipolarMatchDirect(current_frame_,last_kf_, *it->ftr, 1.0/it->mu, 1.0/z_inv_min, 1.0/z_inv_max, z))
-//            {
-//                // 如果失败的话，记录一下失败次数
-//                it->b++; // increase outlier probability when no match was found
-//                ++it;
-//                ++n_failed_matches;
-//                continue;
-//            }
-//
-//            // 计算 tau
-//            // compute tau
-//            double tau = computeTau(T_ref_cur, it->ftr->f, z, px_error_angle);
-//            double tau_inverse = 0.5 * (1.0/max(0.0000001, z-tau) - 1.0/(z+tau));
-//
+            // 进行极线搜索
+            if(!matcher_.findEpipolarMatchDirect(last_kf_,current_frame_,q_cur_ref_,t_cur_ref_,it->ftr,1/it->mu,z_inv_min,z_inv_max,z))
+            {
+                // 如果失败的话，记录一下失败次数
+                it->b++; // increase outlier probability when no match was found
+                ++it;
+                ++n_failed_matches;
+                continue;
+            }
+
+            // 计算 tau
+            // compute tau
+            //double tau = computeTau(T_ref_cur, it->ftr->f, z, px_error_angle);
+            //double tau_inverse = 0.5 * (1.0/max(0.0000001, z-tau) - 1.0/(z+tau));
+
 //            // update the estimate
 //            updateSeed(1./z, tau_inverse*tau_inverse, &*it);
 //            ++n_updates;
@@ -166,23 +165,23 @@ namespace my_slam
 
     bool sparse_depth_filter::is_visible(Seed seed)
     {
-        Eigen::Quaternionf q_cur_ref;
-        Eigen::Vector3f t_cur_ref;
-        q_cur_ref = current_frame_q_.inverse() * last_kf_q_;
-        q_cur_ref.normalize();
-        t_cur_ref = current_frame_q_.inverse().toRotationMatrix()*(last_kf_t_-current_frame_t_);
+
+        q_cur_ref_ = current_frame_q_.conjugate() * last_kf_q_;
+        q_cur_ref_.normalize();
+        t_cur_ref_ = current_frame_q_.conjugate().toRotationMatrix()*(last_kf_t_-current_frame_t_);
 
         // 计算当前点的3d位置
-        const Eigen::Vector3f xyz_f(current_frame_q_.toRotationMatrix()*Eigen::Vector3f(seed.ftr.x_*1.0/seed.mu,seed.ftr.y_*1.0/seed.mu,1.0/seed.mu)+t_cur_ref);
+        const Eigen::Vector3f xyz(q_cur_ref_.toRotationMatrix()*Eigen::Vector3f(seed.ftr.x_*1.0/seed.mu,seed.ftr.y_*1.0/seed.mu,1.0/seed.mu)+t_cur_ref_);
         // 在摄像头后面的就不要
-        if(xyz_f.z() < 0.0)
+        if(xyz.z() < 0.0)
         {
             return false;
         }
-        int u = (int)(config_.focal_length_*xyz_f[0]/xyz_f[2]);
-        int v = (int)(config_.focal_length_*xyz_f[1]/xyz_f[2]);
+        const Eigen::Vector2f uv = cam_->f2c(xyz);
         // 不在图像内，也不要
-        if(u>current_frame_.cols/2||v>current_frame_.rows/2)
+        if(uv[0]>(float)current_frame_.cols-6
+        ||uv[1]>(float)current_frame_.rows-6
+        ||uv[0]<6||uv[1]<6)
         {
             return false;
         }

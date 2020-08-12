@@ -85,6 +85,9 @@ namespace my_slam
         picture last_kf_;
         Eigen::Quaternionf last_kf_q_;
         Eigen::Vector3f last_kf_t_;
+
+        Eigen::Quaternionf q_cur_ref_;
+        Eigen::Vector3f t_cur_ref_;
     };
 
 };

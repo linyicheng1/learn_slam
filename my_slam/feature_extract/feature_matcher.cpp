@@ -73,7 +73,7 @@ namespace my_slam
                                                   const picture& cur_frame,
                                                   const Eigen::Quaternionf q,
                                                   const Eigen::Vector3f t,
-                                                  const Eigen::Vector3f & ref_ftr,
+                                                  const feature2d& ref_ftr,
                                                   const double d_estimate,
                                                   const double d_min,
                                                   const double d_max,
@@ -82,7 +82,7 @@ namespace my_slam
 //        //int zmssd_best = PatchScore::threshold();
 //        Eigen::Vector2d uv_best;
 //
-//        // Compute start and end of epipolar line in old_kf for match search, on unit plane!
+        // Compute start and end of epipolar line in old_kf for match search, on unit plane!
 //        Eigen::Vector2f A = project2d(q.toRotationMatrix() * (ref_ftr*d_min) + t);
 //        Eigen::Vector2f B = project2d(q.toRotationMatrix() * (ref_ftr*d_max) + t);
 //        epi_dir_ = A - B;

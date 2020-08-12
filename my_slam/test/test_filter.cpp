@@ -43,7 +43,6 @@ int main()
         cv::cvtColor(cam_0,cam_0,CV_BGR2GRAY);
         clock_t start,end;
         start = clock();
-        auto *test_frame = new frame(cam_0.data,cam_0.cols,cam_0.rows,2);
         int id = test.getFrameId();
         test_filter->add_frame(picture(cam_0.data,cam_0.cols,cam_0.rows),gt.get_quaternion()[id],gt.get_pos()[id]);
         vis.set_depth_map(test_filter->get_depth_filter());

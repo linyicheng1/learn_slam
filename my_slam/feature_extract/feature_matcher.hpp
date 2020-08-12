@@ -47,7 +47,7 @@ namespace my_slam
                 const picture& cur_frame,
                 const Eigen::Quaternionf q,
                 const Eigen::Vector3f t,
-                const Eigen::Vector3f& ref_ftr,
+                const feature2d& ref_ftr,
                 const double d_estimate,
                 const double d_min,
                 const double d_max,

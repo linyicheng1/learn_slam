@@ -36,7 +36,7 @@ namespace my_slam
         virtual inline int getFrameId(){ return frame_id_;}
         inline void updateId(){frame_id_ ++;}
         inline void setUpdateTime(double time){update_time_ = time;}
-        inline float get_focal_length(void){return focal_length_;}
+        inline float get_focal_length(void){return cam_param.fx;}
         Eigen::Vector2f f2c(Eigen::Vector3f f)
         {
             Eigen::Vector2f c;
