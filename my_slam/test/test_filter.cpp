@@ -44,7 +44,10 @@ int main()
         clock_t start,end;
         start = clock();
         int id = test.getFrameId();
-        test_filter->add_frame(picture(cam_0.data,cam_0.cols,cam_0.rows),gt.get_quaternion()[id],gt.get_pos()[id]);
+        auto *test_frame = new frame(cam_0.data,cam_0.cols,cam_0.rows,2);
+        test_frame->q_ = gt.get_quaternion()[id];
+        test_frame->t_ = gt.get_pos()[id];
+        test_filter->add_frame(*test_frame);
         vis.set_depth_map(test_filter->get_depth_filter());
 
         end = clock();

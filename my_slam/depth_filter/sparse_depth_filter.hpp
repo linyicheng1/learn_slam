@@ -63,28 +63,23 @@ namespace my_slam
         explicit sparse_depth_filter(feature_extract_config config);
         ~sparse_depth_filter() = default;
         void set_cam(camera* cam){cam_ = cam;}
-        void add_frame(const picture& pic,const Eigen::Quaternionf& q,Eigen::Vector3f t);
+        void add_frame(const frame& pic);
         std::vector<Eigen::Vector3f> get_depth_filter();
     private:
         bool is_key_frame();
         bool is_visible(Seed seed);
-        void initializeSeeds(const picture& pic,float mean_depth,float min_depth);
+        void initializeSeeds(const frame& pic,float mean_depth,float min_depth);
 
         feature_extract_config  config_;
         extract_fast *fast_;
         camera* cam_;
         std::list<Seed> seeds_;
-        frame *frame_;
+
         std::vector<feature2d> search_pt_;
         feature_matcher matcher_;
 
-        picture current_frame_;
-        Eigen::Quaternionf current_frame_q_;
-        Eigen::Vector3f current_frame_t_;
-
-        picture last_kf_;
-        Eigen::Quaternionf last_kf_q_;
-        Eigen::Vector3f last_kf_t_;
+        frame current_frame_;
+        frame last_kf_;
 
         Eigen::Quaternionf q_cur_ref_;
         Eigen::Vector3f t_cur_ref_;

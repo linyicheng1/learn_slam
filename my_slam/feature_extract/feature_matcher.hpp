@@ -9,42 +9,15 @@
 
 namespace my_slam
 {
-    /// Warp a patch from the reference view to the current view.
-    namespace warp
-    {
-        void getWarpMatrixAffine(
-                const camera& cam_ref,
-                const camera& cam_cur,
-                const Eigen::Vector2d& px_ref,
-                const Eigen::Vector3d& f_ref,
-                const double depth_ref,
-                const Eigen::Quaternionf& q_cur_ref,
-                const Eigen::Vector3f& t_cur_ref,
-                const int level_ref,
-                Eigen::Matrix2d& A_cur_ref);
-
-        int getBestSearchLevel(
-                const Eigen::Matrix2d& A_cur_ref,
-                const int max_level);
-
-        void warpAffine(
-                const Eigen::Matrix2d& A_cur_ref,
-                const cv::Mat& img_ref,
-                const Eigen::Vector2d& px_ref,
-                const int level_ref,
-                const int level_cur,
-                const int halfpatch_size,
-                uint8_t* patch);
-    } // namespace warp
-
     class feature_matcher
     {
     public:
         feature_matcher() = default;
+        feature_matcher(camera* cam);
         ~feature_matcher() = default;
         bool findEpipolarMatchDirect(
-                const picture& ref_frame,
-                const picture& cur_frame,
+                const frame& ref_frame,
+                const frame& cur_frame,
                 const Eigen::Quaternionf q,
                 const Eigen::Vector3f t,
                 const feature2d& ref_ftr,
@@ -55,7 +28,20 @@ namespace my_slam
 
     private:
         Eigen::Vector2f epi_dir_;
-        Eigen::Vector2f project2d(Eigen::Vector3f pt_f);
+        camera *cam_;
+        Eigen::Matrix2f A_cur_ref_;
+        int search_level_;
+        float epi_length_;
+        void getWarpMatrixAffine(
+                const Eigen::Vector2f& px_ref,
+                const double depth_ref,
+                const Eigen::Quaternionf& q_cur_ref,
+                const Eigen::Vector3f& t_cur_ref,
+                const int level_ref,
+                Eigen::Matrix2f& A_cur_ref);
+        int getBestSearchLevel(
+                const Eigen::Matrix2f& A_cur_ref,
+                const int max_level);
     };
 };
 #endif // __FEATURE_MATCHER_H

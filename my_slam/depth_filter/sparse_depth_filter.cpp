@@ -30,19 +30,15 @@ namespace my_slam
     {
         fast_ = new extract_fast(config_);
     }
-    void sparse_depth_filter::add_frame(const picture& pic,const Eigen::Quaternionf& q,Eigen::Vector3f t)
+    void sparse_depth_filter::add_frame(const frame& pic)
     {
         if(seeds_.empty())
         {//init
             last_kf_ = pic;
-            last_kf_q_ = current_frame_q_;
-            last_kf_t_ = current_frame_t_;
             initializeSeeds(pic,10,0.01);
             return;
         }
         current_frame_ = pic;
-        current_frame_q_ = q;
-        current_frame_t_ = std::move(t);
         size_t n_updates=0, n_failed_matches=0, n_seeds = seeds_.size();
         // 当前相机焦距
         const float focal_length = cam_->get_focal_length();
@@ -147,12 +143,11 @@ namespace my_slam
     * @brief 初始化深度滤波器种子，在新加入一个关键帧时调用
     * @param frame 关键帧
     */
-    void sparse_depth_filter::initializeSeeds(const picture& pic,float mean_depth,float min_depth)
+    void sparse_depth_filter::initializeSeeds(const frame& pic,float mean_depth,float min_depth)
     {
-        frame_ = new frame(pic.data,pic.cols,pic.rows,config_.levels_);
         fast_->setExistingFeatures(search_pt_);
         // 提取一些新的特征点
-        std::vector<feature2d> points = fast_->extract(frame_->pyramid_,frame_);
+        std::vector<feature2d> points = fast_->extract(current_frame_.pyramid_,&current_frame_);
 
         ++Seed::batch_counter;
         for(auto pt:points)
@@ -166,9 +161,9 @@ namespace my_slam
     bool sparse_depth_filter::is_visible(Seed seed)
     {
 
-        q_cur_ref_ = current_frame_q_.conjugate() * last_kf_q_;
+        q_cur_ref_ = current_frame_.q_.conjugate() * last_kf_.q_;
         q_cur_ref_.normalize();
-        t_cur_ref_ = current_frame_q_.conjugate().toRotationMatrix()*(last_kf_t_-current_frame_t_);
+        t_cur_ref_ = current_frame_.q_.conjugate().toRotationMatrix()*(last_kf_.t_-current_frame_.t_);
 
         // 计算当前点的3d位置
         const Eigen::Vector3f xyz(q_cur_ref_.toRotationMatrix()*Eigen::Vector3f(seed.ftr.x_*1.0/seed.mu,seed.ftr.y_*1.0/seed.mu,1.0/seed.mu)+t_cur_ref_);
@@ -179,8 +174,8 @@ namespace my_slam
         }
         const Eigen::Vector2f uv = cam_->f2c(xyz);
         // 不在图像内，也不要
-        if(uv[0]>(float)current_frame_.cols-6
-        ||uv[1]>(float)current_frame_.rows-6
+        if(uv[0]>(float)current_frame_.pyramid_[0].cols-6
+        ||uv[1]>(float)current_frame_.pyramid_[0].rows-6
         ||uv[0]<6||uv[1]<6)
         {
             return false;

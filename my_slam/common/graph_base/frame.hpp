@@ -3,6 +3,8 @@
 #include "../common.hpp"
 #include "feature2d.hpp"
 #include "../cam/cam.hpp"
+#include "eigen3/Eigen/Core"
+#include "eigen3/Eigen/Geometry"
 
 namespace my_slam
 {
@@ -23,6 +25,8 @@ namespace my_slam
         static long int id_;
         ImgPyr pyramid_;
         camera *cam_;
+        Eigen::Quaternionf q_;
+        Eigen::Vector3f t_;
     private:
         bool key_frame_;
         picture pic_;
