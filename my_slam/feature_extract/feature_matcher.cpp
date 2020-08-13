@@ -47,31 +47,31 @@ namespace my_slam
         epi_length_ = (px_A-px_B).norm() / (float)(1<<search_level_);
 
         // Warp reference patch at ref_level
-        warpAffine(A_cur_ref_, ref_frame.img_pyr_[ref_ftr.level], ref_ftr.px,
-                         ref_ftr.level, search_level_, halfpatch_size_+1, patch_with_border_);
+        warpAffine(A_cur_ref_, ref_frame.pyramid_[ref_ftr.level_], Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_),
+                         ref_ftr.level_, search_level_, patch_with_border_);
         createPatchFromPatchWithBorder();
 
-//        if(epi_length_ < 2.0)
-//        {
-//            px_cur_ = (px_A+px_B)/2.0;
-//            Vector2d px_scaled(px_cur_/(1<<search_level_));
-//            bool res;
+        if(epi_length_ < 2.0)
+        {
+            px_cur_ = (px_A+px_B)/2.0;
+            Eigen::Vector2f px_scaled(px_cur_/(1<<search_level_));
+            bool res;
 //            if(options_.align_1d)
-//                res = feature_alignment::align1D(
-//                        cur_frame.img_pyr_[search_level_], (px_A-px_B).cast<float>().normalized(),
+//                res = align1D(
+//                        cur_frame.pyramid_[search_level_], (px_A-px_B).cast<float>().normalized(),
 //                        patch_with_border_, patch_, options_.align_max_iter, px_scaled, h_inv_);
 //            else
-//                res = feature_alignment::align2D(
-//                        cur_frame.img_pyr_[search_level_], patch_with_border_, patch_,
+//                res = align2D(
+//                        cur_frame.pyramid_[search_level_], patch_with_border_, patch_,
 //                        options_.align_max_iter, px_scaled);
-//            if(res)
-//            {
-//                px_cur_ = px_scaled*(1<<search_level_);
-//                if(depthFromTriangulation(T_cur_ref, ref_ftr.f, cur_frame.cam_->cam2world(px_cur_), depth))
-//                    return true;
-//            }
-//            return false;
-//        }
+            if(res)
+            {
+                px_cur_ = px_scaled*(1<<search_level_);
+                if(depthFromTriangulation(q,t,cam_->c2f(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_)),cam_->c2f(px_cur_),depth_))
+                    return true;
+            }
+            return false;
+        }
 //
 //        size_t n_steps = epi_length_/0.7; // one step per pixel
 //        Vector2d step = epi_dir_/n_steps;
@@ -185,4 +185,63 @@ namespace my_slam
         }
         return search_level;
     }
+    void feature_matcher::createPatchFromPatchWithBorder()
+    {
+        uint8_t* ref_patch_ptr = patch_;
+        for(int y=1; y<patch_size_+1; ++y, ref_patch_ptr += patch_size_)
+        {
+            uint8_t* ref_patch_border_ptr = patch_with_border_ + y*(patch_size_+2) + 1;
+            for(int x=0; x<patch_size_; ++x)
+                ref_patch_ptr[x] = ref_patch_border_ptr[x];
+        }
+    }
+
+    // https://blog.csdn.net/u011178262/article/details/86729887
+    // solve this function [R*P_r P_c][Z_r // Z_c] = t
+    bool feature_matcher::depthFromTriangulation(
+            const Eigen::Quaternionf& q_search_ref,
+            const Eigen::Vector3f& t_search_ref,
+            const Eigen::Vector3f& f_ref,
+            const Eigen::Vector3f& f_cur,
+            float& depth)
+    {
+        Eigen::Matrix<float,3,2> A;
+        A << q_search_ref.toRotationMatrix() * f_ref, f_cur;
+        const Eigen::Matrix2f AtA = A.transpose()*A;
+        if(AtA.determinant() < 0.000001)
+            return false;
+        const Eigen::Vector2f depth2 = - AtA.inverse()*A.transpose()*t_search_ref;
+        depth = fabs(depth2[0]);
+        return true;
+    }
+
+    void feature_matcher::warpAffine(const Eigen::Matrix2f &A_cur_ref, const picture &img_ref, const Eigen::Vector2f &px_ref,
+                                const int level_ref, const int level_cur, uint8_t *patch)
+    {
+        const int patch_size = halfpatch_size_*2 ;
+        const Eigen::Matrix2f A_ref_cur = A_cur_ref.inverse().cast<float>();
+        if(isnan(A_ref_cur(0,0)))
+        {
+            printf("Affine warp is NaN, probably camera has no translation\n"); // TODO
+            return;
+        }
+
+        // Perform the warp on a larger patch.
+        uint8_t* patch_ptr = patch;
+        const Eigen::Vector2f px_ref_pyr = px_ref.cast<float>() / (1<<level_ref);
+        for (int y=0; y<patch_size; ++y)
+        {
+            for (int x=0; x<patch_size; ++x, ++patch_ptr)
+            {
+                Eigen::Vector2f px_patch(x-halfpatch_size_, y-halfpatch_size_);
+                px_patch *= (1<<level_cur);
+                const Eigen::Vector2f px(A_ref_cur*px_patch + px_ref_pyr);
+                if (px[0]<0 || px[1]<0 || px[0]>=img_ref.cols-1 || px[1]>=img_ref.rows-1)
+                    *patch_ptr = 0;
+                else
+                    *patch_ptr = 1;//(uint8_t) interpolateMat_8u(img_ref, px[0], px[1]);
+            }
+        }
+    }
+
 };
