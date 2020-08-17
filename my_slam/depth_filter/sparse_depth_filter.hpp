@@ -13,6 +13,7 @@
 #include "../feature_extract/extract.hpp"
 #include "../feature_extract/extract_fast.hpp"
 #include "../feature_extract/feature_matcher.hpp"
+#include "graph_base/point3d.hpp"
 
 namespace my_slam
 {
@@ -64,12 +65,22 @@ namespace my_slam
         ~sparse_depth_filter() = default;
         void set_cam(camera* cam){cam_ = cam;}
         void add_frame(const frame& pic);
-        std::vector<Eigen::Vector3f> get_depth_filter();
+        std::list<point3d> get_depth_map();
     private:
         bool is_key_frame();
         bool is_visible(Seed seed);
         void initializeSeeds(const frame& pic,float mean_depth,float min_depth);
+        /// Bayes update of the seed, x is the measurement, tau2 the measurement uncertainty
+        void updateSeed(
+                const float x,
+                const float tau2,
+                Seed* seed);
 
+        /// Compute the uncertainty of the measurement.
+        float computeTau(
+                const Eigen::Vector3f& f,
+                const float z,
+                const float px_error_angle);
         feature_extract_config  config_;
         extract_fast *fast_;
         camera* cam_;
@@ -81,6 +92,7 @@ namespace my_slam
         frame current_frame_;
         frame last_kf_;
 
+        std::list<point3d> map_;
         Eigen::Quaternionf q_cur_ref_;
         Eigen::Vector3f t_cur_ref_;
     };

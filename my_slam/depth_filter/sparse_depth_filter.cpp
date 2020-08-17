@@ -1,5 +1,5 @@
 #include "sparse_depth_filter.hpp"
-
+#include <boost/math/distributions/normal.hpp>
 #include <utility>
 
 namespace my_slam
@@ -42,9 +42,9 @@ namespace my_slam
         size_t n_updates=0, n_failed_matches=0, n_seeds = seeds_.size();
         // 当前相机焦距
         const float focal_length = cam_->get_focal_length();
-        float px_noise = 1.0;
+        float px_noise = 1.0f;
         // 设置当前误差为一个像素点引起的角度误差
-        float px_error_angle = atan(px_noise/(2.0*focal_length))*2.0;
+        float px_error_angle = atanf(px_noise/(2.0f*focal_length))*2.0f;
 
         auto it=seeds_.begin();
         while (it!=seeds_.end())
@@ -68,7 +68,7 @@ namespace my_slam
             float z_inv_min = it->mu + sqrt(it->sigma2);
             // 避免到负数，0就是无穷远点
             float z_inv_max = fmax(it->mu - sqrt(it->sigma2), 0.00000001f);
-            double z;
+            float z;
 
             // 进行极线搜索
             if(!matcher_.findEpipolarMatchDirect(last_kf_,current_frame_,q_cur_ref_,t_cur_ref_,it->ftr,1/it->mu,z_inv_min,z_inv_max,z))
@@ -82,55 +82,51 @@ namespace my_slam
 
             // 计算 tau
             // compute tau
-            //double tau = computeTau(T_ref_cur, it->ftr->f, z, px_error_angle);
-            //double tau_inverse = 0.5 * (1.0/max(0.0000001, z-tau) - 1.0/(z+tau));
+            float tau = computeTau(cam_->c2f(Eigen::Vector2f(it->ftr.x_,it->ftr.y_)), z, px_error_angle);
+            float tau_inverse = 0.5f * (1.f/fmaxf(0.0000001f, z-tau) - 1.f/(z+tau));
 
-//            // update the estimate
-//            updateSeed(1./z, tau_inverse*tau_inverse, &*it);
-//            ++n_updates;
-//
+            // update the estimate
+            updateSeed(1.f/z, tau_inverse*tau_inverse, &*it);
+            ++n_updates;
+
 //            if(frame->isKeyframe())
 //            {
 //                // The feature detector should not initialize new seeds close to this location
 //                feature_detector_->setGridOccpuancy(matcher_.px_cur_);
 //            }
-//
-//            // if the seed has converged, we initialize a new candidate point and remove the seed
-//            if(sqrt(it->sigma2) < it->z_range/options_.seed_convergence_sigma2_thresh)
-//            {
-//                assert(it->ftr->point == NULL); // TODO this should not happen anymore
-//                Vector3d xyz_world(it->ftr->frame->T_f_w_.inverse() * (it->ftr->f * (1.0/it->mu)));
+
+            // if the seed has converged, we initialize a new candidate point and remove the seed
+            if(sqrt(it->sigma2) < it->z_range/options_.seed_convergence_sigma2_thresh)
+            {
+                //assert(it->ftr->point == NULL); // TODO this should not happen anymore
+//                Eigen::Vector3d xyz_world(it->ftr.frame_->T_f_w_.inverse() * (it->ftr->f * (1.0/it->mu)));
 //                Point* point = new Point(xyz_world, it->ftr);
 //                it->ftr->point = point;
-//                /* FIXME it is not threadsafe to add a feature to the frame here.
-//                if(frame->isKeyframe())
-//                {
-//                  Feature* ftr = new Feature(frame.get(), matcher_.px_cur_, matcher_.search_level_);
-//                  ftr->point = point;
-//                  point->addFrameRef(ftr);
-//                  frame->addFeature(ftr);
-//                  it->ftr->frame->addFeature(it->ftr);
-//                }
-//                else
-//                */
+                /* FIXME it is not threadsafe to add a feature to the frame here.
+                if(frame->isKeyframe())
+                {
+                  Feature* ftr = new Feature(frame.get(), matcher_.px_cur_, matcher_.search_level_);
+                  ftr->point = point;
+                  point->addFrameRef(ftr);
+                  frame->addFeature(ftr);
+                  it->ftr->frame->addFeature(it->ftr);
+                }
+                else
+                */
 //                {
 //                    seed_converged_cb_(point, it->sigma2); // put in candidate list
 //                }
-//                it = seeds_.erase(it);
-//            }
-//            else if(isnan(z_inv_min))
-//            {
-//
-//                it = seeds_.erase(it);
-//            }
-//            else
-//                ++it;
-//        }
-//        if(is_keyframe())
-//        {
-//            last_kf_ = pic;
-//            last_kf_q_ = current_frame_q_;
-//            last_kf_t_ = current_frame_t_;
+                auto tmp = point3d(Eigen::Vector3f(it->ftr.x_/it->mu,it->ftr.y_/it->mu,1/it->mu));
+                map_.push_back(tmp);
+                it = seeds_.erase(it);
+            }
+            else if(isnan(z_inv_min))
+            {
+
+                it = seeds_.erase(it);
+            }
+            else
+                ++it;
         }
     }
 
@@ -183,15 +179,46 @@ namespace my_slam
         return true;
     }
 
-    std::vector<Eigen::Vector3f> sparse_depth_filter::get_depth_filter()
+    std::list<point3d> sparse_depth_filter::get_depth_map()
     {
-        std::vector<Eigen::Vector3f> depth_map;
-        for(const auto& seed:seeds_)
-        {
-            float z = 1.f/seed.mu;
-            Eigen::Vector3f xyz_f = cam_->c2f(Eigen::Vector2f(seed.ftr.x_,seed.ftr.y_));
-            depth_map.emplace_back(xyz_f*z);
-        }
-        return depth_map;
+        return map_;
+    }
+
+    void sparse_depth_filter::updateSeed(const float x, const float tau2, Seed *seed)
+    {
+        float norm_scale = sqrt(seed->sigma2 + tau2);
+        if(std::isnan(norm_scale))
+            return;
+        boost::math::normal_distribution<float> nd(seed->mu, norm_scale);
+        float s2 = 1.f/(1./seed->sigma2 + 1./tau2);
+        float m = s2*(seed->mu/seed->sigma2 + x/tau2);
+        float C1 = seed->a/(seed->a+seed->b) * boost::math::pdf(nd, x);
+        float C2 = seed->b/(seed->a+seed->b) * 1./seed->z_range;
+        float normalization_constant = C1 + C2;
+        C1 /= normalization_constant;
+        C2 /= normalization_constant;
+        float f = C1*(seed->a+1.)/(seed->a+seed->b+1.) + C2*seed->a/(seed->a+seed->b+1.);
+        float e = C1*(seed->a+1.)*(seed->a+2.)/((seed->a+seed->b+1.)*(seed->a+seed->b+2.))
+                  + C2*seed->a*(seed->a+1.0f)/((seed->a+seed->b+1.0f)*(seed->a+seed->b+2.0f));
+
+        // update parameters
+        float mu_new = C1*m+C2*seed->mu;
+        seed->sigma2 = C1*(s2 + m*m) + C2*(seed->sigma2 + seed->mu*seed->mu) - mu_new*mu_new;
+        seed->mu = mu_new;
+        seed->a = (e-f)/(f-e/f);
+        seed->b = seed->a*(1.0f-f)/f;
+    }
+
+    float sparse_depth_filter::computeTau(const Eigen::Vector3f &f, const float z, const float px_error_angle)
+    {
+        Eigen::Vector3f a = f*z-t_cur_ref_;
+        float t_norm = t_cur_ref_.norm();
+        float a_norm = a.norm();
+        float alpha = acos(f.dot(t_cur_ref_)/t_norm); // dot product
+        float beta = acos(a.dot(-t_cur_ref_)/(t_norm*a_norm)); // dot product
+        float beta_plus = beta + px_error_angle;
+        float gamma_plus = PI-alpha-beta_plus; // triangle angles sum to PI
+        float z_plus = t_norm*sin(beta_plus)/sin(gamma_plus); // law of sines
+        return (z_plus - z); // tau
     }
 }

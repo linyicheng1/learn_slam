@@ -1,4 +1,5 @@
 #include "feature_alignment.hpp"
+#include "eigen3/Eigen/Dense"
 #include <math.h>
 
 namespace my_slam
@@ -20,7 +21,7 @@ namespace my_slam
             uint8_t* ref_patch_with_border,
             uint8_t* ref_patch,
             const int n_iter,
-            Eigen::Vector2d& cur_px_estimate,
+            Eigen::Vector2f& cur_px_estimate,
             bool no_simd)
     {
 #ifdef __ARM_NEON__

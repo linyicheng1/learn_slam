@@ -48,7 +48,7 @@ int main()
         test_frame->q_ = gt.get_quaternion()[id];
         test_frame->t_ = gt.get_pos()[id];
         test_filter->add_frame(*test_frame);
-        vis.set_depth_map(test_filter->get_depth_filter());
+        vis.set_depth_map(test_filter->get_depth_map());
 
         end = clock();
         time += double(end-start)/CLOCKS_PER_SEC;

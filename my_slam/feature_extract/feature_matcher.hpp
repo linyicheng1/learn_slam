@@ -7,13 +7,16 @@
 #include "graph_base/feature2d.hpp"
 #include "graph_base/frame.hpp"
 #include "feature_alignment.hpp"
+#include "patch_score.hpp"
 
 namespace my_slam
 {
+
     class feature_matcher
     {
         static const int halfpatch_size_ = 4;
         static const int patch_size_ = 8;
+        typedef patch_score::ZMSSD<halfpatch_size_> PatchScore;
     public:
         struct Options
         {
@@ -44,10 +47,10 @@ namespace my_slam
                 const Eigen::Quaternionf q,
                 const Eigen::Vector3f t,
                 const feature2d& ref_ftr,
-                const double d_estimate,
-                const double d_min,
-                const double d_max,
-                double& depth);
+                const float d_estimate,
+                const float d_min,
+                const float d_max,
+                float& depth);
 
     private:
         Eigen::Vector2f epi_dir_;

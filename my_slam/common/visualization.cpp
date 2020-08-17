@@ -25,7 +25,7 @@ namespace my_slam
         {
             glColor3f(0.0, 0.0, 1.0);
             glBegin(GL_POINTS);
-            glVertex3f(i[0], i[1], i[2]);
+            glVertex3f(i.get_pos()[0], i.get_pos()[1], i.get_pos()[2]);
             glEnd();
         }
     }

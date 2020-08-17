@@ -28,7 +28,8 @@ add_library(
         ./common/ground_truth.cpp
         ./common/visualization.cpp 
         ./common/graph_base/feature2d.cpp 
-        ./common/graph_base/frame.cpp 
+        ./common/graph_base/frame.cpp
+        ./common/graph_base/point3d.cpp
 )
 target_link_libraries(common
         ${Pangolin_LIBRARIES}

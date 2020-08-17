@@ -1,4 +1,5 @@
 #include "feature_matcher.hpp"
+#include "feature_alignment.hpp"
 
 namespace my_slam
 {
@@ -8,14 +9,14 @@ namespace my_slam
                                                   const Eigen::Quaternionf q,
                                                   const Eigen::Vector3f t,
                                                   const feature2d& ref_ftr,
-                                                  const double d_estimate,
-                                                  const double d_min,
-                                                  const double d_max,
-                                                  double& depth)
+                                                  const float d_estimate,
+                                                  const float d_min,
+                                                  const float d_max,
+                                                  float& depth)
     {
-//        //int zmssd_best = PatchScore::threshold();
-//        Eigen::Vector2d uv_best;
-//
+        int zmssd_best = PatchScore::threshold();
+        Eigen::Vector2f uv_best;
+
         // Compute start and end of epipolar line in old_kf for match search, on unit plane!
         const Eigen::Vector3f xyz_min(q.toRotationMatrix()*Eigen::Vector3f(ref_ftr.x_*d_min,ref_ftr.y_*d_min,d_min)+t);
         const Eigen::Vector3f xyz_max(q.toRotationMatrix()*Eigen::Vector3f(ref_ftr.x_*d_max,ref_ftr.y_*d_max,d_max)+t);
@@ -61,9 +62,7 @@ namespace my_slam
 //                        cur_frame.pyramid_[search_level_], (px_A-px_B).cast<float>().normalized(),
 //                        patch_with_border_, patch_, options_.align_max_iter, px_scaled, h_inv_);
 //            else
-//                res = align2D(
-//                        cur_frame.pyramid_[search_level_], patch_with_border_, patch_,
-//                        options_.align_max_iter, px_scaled);
+                res = align2D(cur_frame.pyramid_[search_level_],patch_with_border_,patch_,options_.align_max_iter,px_scaled);
             if(res)
             {
                 px_cur_ = px_scaled*(1<<search_level_);
@@ -72,79 +71,74 @@ namespace my_slam
             }
             return false;
         }
-//
-//        size_t n_steps = epi_length_/0.7; // one step per pixel
-//        Vector2d step = epi_dir_/n_steps;
-//
-//        if(n_steps > options_.max_epi_search_steps)
-//        {
-//            printf("WARNING: skip epipolar search: %zu evaluations, px_lenght=%f, d_min=%f, d_max=%f.\n",
-//                   n_steps, epi_length_, d_min, d_max);
-//            return false;
-//        }
-//
-//        // for matching, precompute sum and sum2 of warped reference patch
-//        int pixel_sum = 0;
-//        int pixel_sum_square = 0;
-//        PatchScore patch_score(patch_);
-//
-//        // now we sample along the epipolar line
-//        Vector2d uv = B-step;
-//        Vector2i last_checked_pxi(0,0);
-//        ++n_steps;
-//        for(size_t i=0; i<n_steps; ++i, uv+=step)
-//        {
-//            Vector2d px(cur_frame.cam_->world2cam(uv));
-//            Vector2i pxi(px[0]/(1<<search_level_)+0.5,
-//                         px[1]/(1<<search_level_)+0.5); // +0.5 to round to closest int
-//
-//            if(pxi == last_checked_pxi)
-//                continue;
-//            last_checked_pxi = pxi;
-//
-//            // check if the patch is full within the new frame
-//            if(!cur_frame.cam_->isInFrame(pxi, patch_size_, search_level_))
-//                continue;
-//
-//            // TODO interpolation would probably be a good idea
-//            uint8_t* cur_patch_ptr = cur_frame.img_pyr_[search_level_].data
-//                                     + (pxi[1]-halfpatch_size_)*cur_frame.img_pyr_[search_level_].cols
-//                                     + (pxi[0]-halfpatch_size_);
-//            int zmssd = patch_score.computeScore(cur_patch_ptr, cur_frame.img_pyr_[search_level_].cols);
-//
-//            if(zmssd < zmssd_best) {
-//                zmssd_best = zmssd;
-//                uv_best = uv;
-//            }
-//        }
-//
-//        if(zmssd_best < PatchScore::threshold())
-//        {
-//            if(options_.subpix_refinement)
-//            {
-//                px_cur_ = cur_frame.cam_->world2cam(uv_best);
-//                Vector2d px_scaled(px_cur_/(1<<search_level_));
-//                bool res;
+
+        size_t n_steps = epi_length_/0.7; // one step per pixel
+        Eigen::Vector2f step = epi_dir_/n_steps;
+
+        if(n_steps > options_.max_epi_search_steps)
+        {
+            printf("WARNING: skip epipolar search: %zu evaluations, px_lenght=%f, d_min=%f, d_max=%f.\n",
+                   n_steps, epi_length_, d_min, d_max);
+            return false;
+        }
+
+        // for matching, precompute sum and sum2 of warped reference patch
+        int pixel_sum = 0;
+        int pixel_sum_square = 0;
+        PatchScore patch_score(patch_);
+
+        // now we sample along the epipolar line
+        Eigen::Vector2f uv = B-step;
+        Eigen::Vector2i last_checked_pxi(0,0);
+        ++n_steps;
+        for(size_t i=0; i<n_steps; ++i, uv+=step)
+        {
+            Eigen::Vector2f px(cam_->c2f(uv).x(),cam_->c2f(uv).y());
+            Eigen::Vector2i pxi(px[0]/(1<<search_level_)+0.5,
+                         px[1]/(1<<search_level_)+0.5); // +0.5 to round to closest int
+
+            if(pxi == last_checked_pxi)
+                continue;
+            last_checked_pxi = pxi;
+
+            // TODO interpolation would probably be a good idea
+            uint8_t* cur_patch_ptr = cur_frame.pyramid_[search_level_].data
+                                     + (pxi[1]-halfpatch_size_)*cur_frame.pyramid_[search_level_].cols
+                                     + (pxi[0]-halfpatch_size_);
+            int zmssd = patch_score.computeScore(cur_patch_ptr, cur_frame.pyramid_[search_level_].cols);
+
+            if(zmssd < zmssd_best) {
+                zmssd_best = zmssd;
+                uv_best = uv;
+            }
+        }
+
+        if(zmssd_best < PatchScore::threshold())
+        {
+            if(options_.subpix_refinement)
+            {
+                px_cur_ = Eigen::Vector2f(cam_->c2f(uv_best).x(),cam_->c2f(uv_best).y());
+                Eigen::Vector2f px_scaled(px_cur_/(1<<search_level_));
+                bool res;
 //                if(options_.align_1d)
 //                    res = feature_alignment::align1D(
 //                            cur_frame.img_pyr_[search_level_], (px_A-px_B).cast<float>().normalized(),
 //                            patch_with_border_, patch_, options_.align_max_iter, px_scaled, h_inv_);
 //                else
-//                    res = feature_alignment::align2D(
-//                            cur_frame.img_pyr_[search_level_], patch_with_border_, patch_,
-//                            options_.align_max_iter, px_scaled);
-//                if(res)
-//                {
-//                    px_cur_ = px_scaled*(1<<search_level_);
-//                    if(depthFromTriangulation(T_cur_ref, ref_ftr.f, cur_frame.cam_->cam2world(px_cur_), depth))
-//                        return true;
-//                }
-//                return false;
-//            }
-//            px_cur_ = cur_frame.cam_->world2cam(uv_best);
-//            if(depthFromTriangulation(T_cur_ref, ref_ftr.f, vk::unproject2d(uv_best).normalized(), depth))
-//                return true;
-//        }
+                    res = align2D(cur_frame.pyramid_[search_level_],patch_with_border_,patch_,options_.align_max_iter,px_scaled);
+                if(res)
+                {
+                    px_cur_ = px_scaled*(1<<search_level_);
+                    if(depthFromTriangulation(q,t,cam_->c2f(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_)),cam_->c2f(px_cur_),depth_))
+                        return true;
+                }
+                return false;
+            }
+            px_cur_ = Eigen::Vector2f(cam_->c2f(uv_best).x(),cam_->c2f(uv_best).y());
+
+            if(depthFromTriangulation(q,t, cam_->c2f(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_)), cam_->c2f(px_cur_), depth_))
+                return true;
+        }
         return false;
     }
 

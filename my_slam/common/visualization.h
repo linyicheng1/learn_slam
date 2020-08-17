@@ -7,6 +7,8 @@
 #include "thread.h"
 #include "Eigen/Core"
 #include "Eigen/Geometry"
+#include <list>
+#include "graph_base/point3d.hpp"
 
 namespace my_slam
 {
@@ -16,12 +18,12 @@ namespace my_slam
         visualization();
         void set_pos(std::vector<Eigen::Vector3f> pos){pos_ = std::move(pos);}
         void set_quaternion(std::vector<Eigen::Quaternionf> q){q_ = std::move(q);}
-        void set_depth_map(std::vector<Eigen::Vector3f> depth_map){depth_map_=std::move(depth_map);}
+        void set_depth_map(std::list<point3d> depth_map){depth_map_=std::move(depth_map);}
         ~visualization();
     private:
         std::vector<Eigen::Vector3f> pos_;
         std::vector<Eigen::Quaternionf> q_;
-        std::vector<Eigen::Vector3f> depth_map_;
+        std::list<point3d> depth_map_;
         void process() override;
         void draw_trajectory();
         void draw_pose();

@@ -5,6 +5,7 @@
 #include <ctime>
 namespace my_slam
 {
+#define PI 3.1415926
     typedef unsigned char pic_byte;
     class picture
     {
