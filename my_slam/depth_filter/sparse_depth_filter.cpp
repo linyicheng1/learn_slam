@@ -30,12 +30,13 @@ namespace my_slam
     {
         fast_ = new extract_fast(config_);
     }
-    void sparse_depth_filter::add_frame(const frame& pic)
+    void sparse_depth_filter::add_frame(frame *pic)
     {
         if(seeds_.empty())
         {//init
-            last_kf_ = pic;
-            initializeSeeds(pic,10,0.01);
+            last_kf_ = new frame(*pic);
+            current_frame_ = pic;
+            initializeSeeds(last_kf_,10,0.01);
             return;
         }
         current_frame_ = pic;
@@ -45,6 +46,7 @@ namespace my_slam
         float px_noise = 1.0f;
         // 设置当前误差为一个像素点引起的角度误差
         float px_error_angle = atanf(px_noise/(2.0f*focal_length))*2.0f;
+        matcher_.pts_A.empty();matcher_.pts_B.empty();
 
         auto it=seeds_.begin();
         while (it!=seeds_.end())
@@ -56,22 +58,14 @@ namespace my_slam
                 it = seeds_.erase(it);
                 continue;
             }
-            // 检测该点是否在当前图像中可以看到
-            // check if point is visible in the current image
-            if(!is_visible(*it))
-            {
-                ++it; // behind the camera
-                continue;
-            }
             // we are using inverse depth coordinates
             // 计算最小值
             float z_inv_min = it->mu + sqrt(it->sigma2);
             // 避免到负数，0就是无穷远点
             float z_inv_max = fmax(it->mu - sqrt(it->sigma2), 0.00000001f);
             float z;
-
             // 进行极线搜索
-            if(!matcher_.findEpipolarMatchDirect(last_kf_,current_frame_,q_cur_ref_,t_cur_ref_,it->ftr,1/it->mu,z_inv_min,z_inv_max,z))
+            if(!matcher_.findEpipolarMatchDirect(*last_kf_,*current_frame_,q_cur_ref_,t_cur_ref_,it->ftr,1/it->mu,z_inv_min,z_inv_max,z))
             {
                 // 如果失败的话，记录一下失败次数
                 it->b++; // increase outlier probability when no match was found
@@ -79,15 +73,15 @@ namespace my_slam
                 ++n_failed_matches;
                 continue;
             }
-
-            // 计算 tau
-            // compute tau
-            float tau = computeTau(cam_->c2f(Eigen::Vector2f(it->ftr.x_,it->ftr.y_)), z, px_error_angle);
-            float tau_inverse = 0.5f * (1.f/fmaxf(0.0000001f, z-tau) - 1.f/(z+tau));
-
-            // update the estimate
-            updateSeed(1.f/z, tau_inverse*tau_inverse, &*it);
-            ++n_updates;
+//
+//            // 计算 tau
+//            // compute tau
+//            float tau = computeTau(cam_->c2f(Eigen::Vector2f(it->ftr.x_,it->ftr.y_)), z, px_error_angle);
+//            float tau_inverse = 0.5f * (1.f/fmaxf(0.0000001f, z-tau) - 1.f/(z+tau));
+//
+//            // update the estimate
+//            updateSeed(1.f/z, tau_inverse*tau_inverse, &*it);
+//            ++n_updates;
 
 //            if(frame->isKeyframe())
 //            {
@@ -139,11 +133,11 @@ namespace my_slam
     * @brief 初始化深度滤波器种子，在新加入一个关键帧时调用
     * @param frame 关键帧
     */
-    void sparse_depth_filter::initializeSeeds(const frame& pic,float mean_depth,float min_depth)
+    void sparse_depth_filter::initializeSeeds(frame *pic,float mean_depth,float min_depth)
     {
         fast_->setExistingFeatures(search_pt_);
         // 提取一些新的特征点
-        std::vector<feature2d> points = fast_->extract(current_frame_.pyramid_,&current_frame_);
+        std::vector<feature2d> points = fast_->extract(pic->pyramid_,pic);
 
         ++Seed::batch_counter;
         for(auto pt:points)
@@ -157,9 +151,9 @@ namespace my_slam
     bool sparse_depth_filter::is_visible(Seed seed)
     {
 
-        q_cur_ref_ = current_frame_.q_.conjugate() * last_kf_.q_;
+        q_cur_ref_ = current_frame_->q_.conjugate() * last_kf_->q_;
         q_cur_ref_.normalize();
-        t_cur_ref_ = current_frame_.q_.conjugate().toRotationMatrix()*(last_kf_.t_-current_frame_.t_);
+        t_cur_ref_ = current_frame_->q_.conjugate().toRotationMatrix()*(last_kf_->t_-current_frame_->t_);
 
         // 计算当前点的3d位置
         const Eigen::Vector3f xyz(q_cur_ref_.toRotationMatrix()*Eigen::Vector3f(seed.ftr.x_*1.0/seed.mu,seed.ftr.y_*1.0/seed.mu,1.0/seed.mu)+t_cur_ref_);
@@ -170,8 +164,8 @@ namespace my_slam
         }
         const Eigen::Vector2f uv = cam_->f2c(xyz);
         // 不在图像内，也不要
-        if(uv[0]>(float)current_frame_.pyramid_[0].cols-6
-        ||uv[1]>(float)current_frame_.pyramid_[0].rows-6
+        if(uv[0]>(float)current_frame_->pyramid_[0].cols-6
+        ||uv[1]>(float)current_frame_->pyramid_[0].rows-6
         ||uv[0]<6||uv[1]<6)
         {
             return false;

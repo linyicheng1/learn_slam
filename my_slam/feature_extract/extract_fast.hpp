@@ -38,6 +38,7 @@ namespace my_slam
         std::vector<feature2d> extract(ImgPyr pyramid,frame* Frame) override;
         void setExistingFeatures(std::vector<feature2d> pts);
         void resetGrid();
+        std::vector<feature2d> get_features(){return features_;}
     private:
         feature_extract_config config_;
         std::vector<feature2d> features_;

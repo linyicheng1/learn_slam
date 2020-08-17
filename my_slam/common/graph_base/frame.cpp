@@ -17,6 +17,18 @@ namespace my_slam
         pic_ = picture(img,img_width,img_height);
         createImgPyramid(pic_,levels_,pyramid_);
     }
+    frame::frame(frame const &copy):
+    levels_(copy.levels_)
+    {
+        pic_.rows = copy.pic_.rows;
+        pic_.cols = copy.pic_.cols;
+        pic_.data = new pic_byte[pic_.rows*pic_.cols];
+        for(int i=0;i<pic_.rows*pic_.cols;i++)
+        {
+            pic_.data[i] = copy.pic_.data[i];
+        }
+        createImgPyramid(pic_,levels_,pyramid_);
+    }
     /**
     * @brief 创建图像金字塔
     * @param img_level_0 原始图像信息

@@ -11,6 +11,54 @@
 
 using namespace my_slam;
 
+class test_filter: public sparse_depth_filter
+{
+public:
+    test_filter(feature_extract_config config):
+            sparse_depth_filter(config)
+    {
+    }
+    cv::Mat view_search_line()
+    {
+        frame* frame = get_frame();
+        cv::Mat pic(frame->pyramid_[0].rows,frame->pyramid_[0].cols,0);
+        pic.data = frame->pyramid_[0].data;
+        cv::Mat show = pic.clone();
+
+        auto pts_B = get_matcher().pts_B;
+        auto pts_A = get_matcher().pts_A;
+        assert(pts_A.size()==pts_B.size());
+        for(int i=0;i<pts_A.size();i++)
+        {
+            cv::Point pt1(pts_A.at(i).x(),pts_A.at(i).y());
+            cv::Point pt2(pts_B.at(i).x(),pts_B.at(i).y());
+            cv::line(show, pt1, pt2, cv::Scalar(0, 255, 255), 3);
+        }
+        return show;
+    }
+    cv::Mat view_match_result()
+    {
+//        assert(!pts.empty());
+//        for(const auto& pt:pts)
+//        {
+//            cv::circle(pic, pt, 1, cv::Scalar(0, 255, 0), -1);
+//        }
+//        return pic;
+    }
+    cv::Mat view_kf_with_feature()
+    {
+        frame* kf = get_kf();
+        cv::Mat pic(kf->pyramid_[0].rows,kf->pyramid_[0].cols,0);
+        pic.data = kf->pyramid_[0].data;
+        cv::Mat show = pic.clone();
+        std::vector<feature2d> features = get_extract()->get_features();
+        for(const auto& feature:features)
+        {
+            cv::circle(show, cv::Point(feature.x_,feature.y_), 1, cv::Scalar(0, 0, 255), -1);
+        }
+        return show;
+    }
+};
 int main()
 {
     depth_data test("/home/lyc/dataSet/test_data/");
@@ -26,11 +74,11 @@ int main()
     config.grid_n_rows_ = 30;
     config.levels_ = 1;
     config.cell_size_ = 16;
-    auto *test_filter = new sparse_depth_filter(config);
-    test_filter->set_cam((camera*)&test);
+    auto *filter = new test_filter(config);
+    filter->set_cam((camera*)&test);
     int cnt = 0;
     double time = 0;
-
+    cv::Mat kf,search_line,search_result;
     while (cnt<200)
     {
         cnt ++;
@@ -47,12 +95,16 @@ int main()
         auto *test_frame = new frame(cam_0.data,cam_0.cols,cam_0.rows,2);
         test_frame->q_ = gt.get_quaternion()[id];
         test_frame->t_ = gt.get_pos()[id];
-        test_filter->add_frame(*test_frame);
-        vis.set_depth_map(test_filter->get_depth_map());
+        filter->add_frame(test_frame);
+        vis.set_depth_map(filter->get_depth_map());
 
         end = clock();
         time += double(end-start)/CLOCKS_PER_SEC;
+
         /////////////////////////////////////
+        cv::imshow("key_frame",filter->view_kf_with_feature());
+        cv::imshow("search line",filter->view_search_line());
+        //cv::imshow("search line with result",filter->view_match_result());
         cv::imshow("pic",cam_0);
         cv::waitKey(300);
     }

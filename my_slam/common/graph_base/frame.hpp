@@ -17,7 +17,7 @@ namespace my_slam
         ~frame() = default;
         frame(pic_byte* img, int img_width, int img_height,int levels);
         frame(picture img,int levels);
-
+        frame(frame const &copy);
         //// 
         void set_key_frame(void){key_frame_ = true;}
         void set_cam(camera *cam){cam_ = cam;}

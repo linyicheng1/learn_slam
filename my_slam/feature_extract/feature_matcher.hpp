@@ -8,6 +8,7 @@
 #include "graph_base/frame.hpp"
 #include "feature_alignment.hpp"
 #include "patch_score.hpp"
+#include <vector>
 
 namespace my_slam
 {
@@ -51,7 +52,10 @@ namespace my_slam
                 const float d_min,
                 const float d_max,
                 float& depth);
-
+        void set_cam(camera *cam){cam_=cam;}
+        /////// for view //////
+        std::vector<Eigen::Vector2f> pts_A;
+        std::vector<Eigen::Vector2f> pts_B;
     private:
         Eigen::Vector2f epi_dir_;
         Eigen::Vector2f px_cur_;

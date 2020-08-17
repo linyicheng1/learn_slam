@@ -44,7 +44,10 @@ namespace my_slam
 
         // Find length of search range on epipolar line
         Eigen::Vector2f px_A = cam_->f2c(xyz_min);
-        Eigen::Vector2f px_B = cam_->f2c(xyz_max);;
+        Eigen::Vector2f px_B = cam_->f2c(xyz_max);
+        pts_A.push_back(px_A);
+        pts_B.push_back(px_B);
+
         epi_length_ = (px_A-px_B).norm() / (float)(1<<search_level_);
 
         // Warp reference patch at ref_level

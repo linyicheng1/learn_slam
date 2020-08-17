@@ -63,13 +63,17 @@ namespace my_slam
         sparse_depth_filter();
         explicit sparse_depth_filter(feature_extract_config config);
         ~sparse_depth_filter() = default;
-        void set_cam(camera* cam){cam_ = cam;}
-        void add_frame(const frame& pic);
+        void set_cam(camera* cam){cam_ = cam;matcher_.set_cam(cam_);}
+        void add_frame(frame* pic);
+        frame* get_kf(){return last_kf_;}
+        frame* get_frame(){return current_frame_;}
+        extract_fast * get_extract(){return fast_;}
+        feature_matcher get_matcher(){return matcher_;}
         std::list<point3d> get_depth_map();
     private:
         bool is_key_frame();
         bool is_visible(Seed seed);
-        void initializeSeeds(const frame& pic,float mean_depth,float min_depth);
+        void initializeSeeds(frame *pic,float mean_depth,float min_depth);
         /// Bayes update of the seed, x is the measurement, tau2 the measurement uncertainty
         void updateSeed(
                 const float x,
@@ -89,8 +93,8 @@ namespace my_slam
         std::vector<feature2d> search_pt_;
         feature_matcher matcher_;
 
-        frame current_frame_;
-        frame last_kf_;
+        frame *current_frame_;
+        frame *last_kf_;
 
         std::list<point3d> map_;
         Eigen::Quaternionf q_cur_ref_;
