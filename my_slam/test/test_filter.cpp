@@ -28,11 +28,12 @@ public:
         auto pts_B = get_matcher().pts_B;
         auto pts_A = get_matcher().pts_A;
         assert(pts_A.size()==pts_B.size());
-        for(int i=0;i<pts_A.size();i++)
+        //for(int i=0;i<pts_A.size();i++)
+        if(pts_A.size()>200)
         {
-            cv::Point pt1(pts_A.at(i).x(),pts_A.at(i).y());
-            cv::Point pt2(pts_B.at(i).x(),pts_B.at(i).y());
-            cv::line(show, pt1, pt2, cv::Scalar(0, 255, 255), 3);
+            cv::Point pt1((int)pts_A.at(200).x(),(int)pts_A.at(200).y());
+            cv::Point pt2((int)pts_B.at(200).x(),(int)pts_B.at(200).y());
+            cv::line(show, pt1, pt2, cv::Scalar(0, 255, 255), 1);
         }
         return show;
     }
@@ -52,9 +53,9 @@ public:
         pic.data = kf->pyramid_[0].data;
         cv::Mat show = pic.clone();
         std::vector<feature2d> features = get_extract()->get_features();
-        for(const auto& feature:features)
+        //for(const auto& feature:features)
         {
-            cv::circle(show, cv::Point(feature.x_,feature.y_), 1, cv::Scalar(0, 0, 255), -1);
+            cv::circle(show, cv::Point(features[200].x_,features[200].y_), 5, cv::Scalar(0, 0, 255), -1);
         }
         return show;
     }

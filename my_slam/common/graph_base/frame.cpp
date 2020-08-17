@@ -18,7 +18,10 @@ namespace my_slam
         createImgPyramid(pic_,levels_,pyramid_);
     }
     frame::frame(frame const &copy):
-    levels_(copy.levels_)
+    levels_(copy.levels_),
+    cam_(copy.cam_),
+    q_(copy.q_),
+    t_(copy.t_)
     {
         pic_.rows = copy.pic_.rows;
         pic_.cols = copy.pic_.cols;

@@ -46,7 +46,10 @@ namespace my_slam
         float px_noise = 1.0f;
         // 设置当前误差为一个像素点引起的角度误差
         float px_error_angle = atanf(px_noise/(2.0f*focal_length))*2.0f;
-        matcher_.pts_A.empty();matcher_.pts_B.empty();
+        q_cur_ref_ = current_frame_->q_.conjugate()*last_kf_->q_;
+        t_cur_ref_ = current_frame_->q_.toRotationMatrix().inverse()*(last_kf_->t_-current_frame_->t_);
+        matcher_.pts_A.clear();
+        matcher_.pts_B.clear();
 
         auto it=seeds_.begin();
         while (it!=seeds_.end())
@@ -65,6 +68,7 @@ namespace my_slam
             float z_inv_max = fmax(it->mu - sqrt(it->sigma2), 0.00000001f);
             float z;
             // 进行极线搜索
+
             if(!matcher_.findEpipolarMatchDirect(*last_kf_,*current_frame_,q_cur_ref_,t_cur_ref_,it->ftr,1/it->mu,z_inv_min,z_inv_max,z))
             {
                 // 如果失败的话，记录一下失败次数

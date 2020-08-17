@@ -1,4 +1,6 @@
 #include "feature_matcher.hpp"
+
+#include <utility>
 #include "feature_alignment.hpp"
 
 namespace my_slam
@@ -17,132 +19,138 @@ namespace my_slam
         int zmssd_best = PatchScore::threshold();
         Eigen::Vector2f uv_best;
 
-        // Compute start and end of epipolar line in old_kf for match search, on unit plane!
-        const Eigen::Vector3f xyz_min(q.toRotationMatrix()*Eigen::Vector3f(ref_ftr.x_*d_min,ref_ftr.y_*d_min,d_min)+t);
-        const Eigen::Vector3f xyz_max(q.toRotationMatrix()*Eigen::Vector3f(ref_ftr.x_*d_max,ref_ftr.y_*d_max,d_max)+t);
+        Eigen::Vector2f px_A = transform(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_),d_min,q,t);
+        Eigen::Vector2f px_B = transform(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_),d_max,q,t);
 
-        const Eigen::Vector2f A(xyz_min[0]/xyz_min[2],xyz_min[1]/xyz_min[2]);
-        const Eigen::Vector2f B(xyz_max[0]/xyz_max[2],xyz_max[1]/xyz_max[2]);
-        epi_dir_ = A - B;
-
-        // Compute affine warp matrix
-        getWarpMatrixAffine(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_),d_estimate,q,t,ref_ftr.level_,A_cur_ref_);
-
-//        // feature pre-selection
-//        bool reject_ = false;
-//        if(ref_ftr.type == Feature::EDGELET && options_.epi_search_edgelet_filtering)
-//        {
-//            const Vector2d grad_cur = (A_cur_ref_ * ref_ftr.grad).normalized();
-//            const double cosangle = fabs(grad_cur.dot(epi_dir_.normalized()));
-//            if(cosangle < options_.epi_search_edgelet_max_angle) {
-//                reject_ = true;
-//                return false;
-//            }
-//        }
-
-        search_level_ = getBestSearchLevel(A_cur_ref_,cur_frame.pyramid_.size());
-
-        // Find length of search range on epipolar line
-        Eigen::Vector2f px_A = cam_->f2c(xyz_min);
-        Eigen::Vector2f px_B = cam_->f2c(xyz_max);
         pts_A.push_back(px_A);
         pts_B.push_back(px_B);
 
-        epi_length_ = (px_A-px_B).norm() / (float)(1<<search_level_);
-
-        // Warp reference patch at ref_level
-        warpAffine(A_cur_ref_, ref_frame.pyramid_[ref_ftr.level_], Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_),
-                         ref_ftr.level_, search_level_, patch_with_border_);
-        createPatchFromPatchWithBorder();
-
-        if(epi_length_ < 2.0)
-        {
-            px_cur_ = (px_A+px_B)/2.0;
-            Eigen::Vector2f px_scaled(px_cur_/(1<<search_level_));
-            bool res;
-//            if(options_.align_1d)
-//                res = align1D(
-//                        cur_frame.pyramid_[search_level_], (px_A-px_B).cast<float>().normalized(),
-//                        patch_with_border_, patch_, options_.align_max_iter, px_scaled, h_inv_);
-//            else
-                res = align2D(cur_frame.pyramid_[search_level_],patch_with_border_,patch_,options_.align_max_iter,px_scaled);
-            if(res)
-            {
-                px_cur_ = px_scaled*(1<<search_level_);
-                if(depthFromTriangulation(q,t,cam_->c2f(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_)),cam_->c2f(px_cur_),depth_))
-                    return true;
-            }
-            return false;
-        }
-
-        size_t n_steps = epi_length_/0.7; // one step per pixel
-        Eigen::Vector2f step = epi_dir_/n_steps;
-
-        if(n_steps > options_.max_epi_search_steps)
-        {
-            printf("WARNING: skip epipolar search: %zu evaluations, px_lenght=%f, d_min=%f, d_max=%f.\n",
-                   n_steps, epi_length_, d_min, d_max);
-            return false;
-        }
-
-        // for matching, precompute sum and sum2 of warped reference patch
-        int pixel_sum = 0;
-        int pixel_sum_square = 0;
-        PatchScore patch_score(patch_);
-
-        // now we sample along the epipolar line
-        Eigen::Vector2f uv = B-step;
-        Eigen::Vector2i last_checked_pxi(0,0);
-        ++n_steps;
-        for(size_t i=0; i<n_steps; ++i, uv+=step)
-        {
-            Eigen::Vector2f px(cam_->c2f(uv).x(),cam_->c2f(uv).y());
-            Eigen::Vector2i pxi(px[0]/(1<<search_level_)+0.5,
-                         px[1]/(1<<search_level_)+0.5); // +0.5 to round to closest int
-
-            if(pxi == last_checked_pxi)
-                continue;
-            last_checked_pxi = pxi;
-
-            // TODO interpolation would probably be a good idea
-            uint8_t* cur_patch_ptr = cur_frame.pyramid_[search_level_].data
-                                     + (pxi[1]-halfpatch_size_)*cur_frame.pyramid_[search_level_].cols
-                                     + (pxi[0]-halfpatch_size_);
-            int zmssd = patch_score.computeScore(cur_patch_ptr, cur_frame.pyramid_[search_level_].cols);
-
-            if(zmssd < zmssd_best) {
-                zmssd_best = zmssd;
-                uv_best = uv;
-            }
-        }
-
-        if(zmssd_best < PatchScore::threshold())
-        {
-            if(options_.subpix_refinement)
-            {
-                px_cur_ = Eigen::Vector2f(cam_->c2f(uv_best).x(),cam_->c2f(uv_best).y());
-                Eigen::Vector2f px_scaled(px_cur_/(1<<search_level_));
-                bool res;
-//                if(options_.align_1d)
-//                    res = feature_alignment::align1D(
-//                            cur_frame.img_pyr_[search_level_], (px_A-px_B).cast<float>().normalized(),
-//                            patch_with_border_, patch_, options_.align_max_iter, px_scaled, h_inv_);
-//                else
-                    res = align2D(cur_frame.pyramid_[search_level_],patch_with_border_,patch_,options_.align_max_iter,px_scaled);
-                if(res)
-                {
-                    px_cur_ = px_scaled*(1<<search_level_);
-                    if(depthFromTriangulation(q,t,cam_->c2f(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_)),cam_->c2f(px_cur_),depth_))
-                        return true;
-                }
-                return false;
-            }
-            px_cur_ = Eigen::Vector2f(cam_->c2f(uv_best).x(),cam_->c2f(uv_best).y());
-
-            if(depthFromTriangulation(q,t, cam_->c2f(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_)), cam_->c2f(px_cur_), depth_))
-                return true;
-        }
-        return false;
+//        // Compute start and end of epipolar line in old_kf for match search, on unit plane!
+//        const Eigen::Vector3f xyz_min(q.toRotationMatrix()*Eigen::Vector3f(ref_ftr.x_*d_min,ref_ftr.y_*d_min,d_min)+t);
+//        const Eigen::Vector3f xyz_max(q.toRotationMatrix()*Eigen::Vector3f(ref_ftr.x_*d_max,ref_ftr.y_*d_max,d_max)+t);
+//
+//        const Eigen::Vector2f A(xyz_min[0]/xyz_min[2],xyz_min[1]/xyz_min[2]);
+//        const Eigen::Vector2f B(xyz_max[0]/xyz_max[2],xyz_max[1]/xyz_max[2]);
+//        epi_dir_ = A - B;
+//
+//        // Compute affine warp matrix
+//        getWarpMatrixAffine(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_),d_estimate,q,t,ref_ftr.level_,A_cur_ref_);
+//
+////        // feature pre-selection
+////        bool reject_ = false;
+////        if(ref_ftr.type == Feature::EDGELET && options_.epi_search_edgelet_filtering)
+////        {
+////            const Vector2d grad_cur = (A_cur_ref_ * ref_ftr.grad).normalized();
+////            const double cosangle = fabs(grad_cur.dot(epi_dir_.normalized()));
+////            if(cosangle < options_.epi_search_edgelet_max_angle) {
+////                reject_ = true;
+////                return false;
+////            }
+////        }
+//
+//        search_level_ = getBestSearchLevel(A_cur_ref_,cur_frame.pyramid_.size());
+//
+//        // Find length of search range on epipolar line
+////        Eigen::Vector2f px_A = cam_->f2c(xyz_min);
+////        Eigen::Vector2f px_B = cam_->f2c(xyz_max);
+//        pts_A.push_back(px_A);
+//        pts_B.push_back(px_B);
+//
+//        epi_length_ = (px_A-px_B).norm() / (float)(1<<search_level_);
+//
+//        // Warp reference patch at ref_level
+//        warpAffine(A_cur_ref_, ref_frame.pyramid_[ref_ftr.level_], Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_),
+//                         ref_ftr.level_, search_level_, patch_with_border_);
+//        createPatchFromPatchWithBorder();
+//
+//        if(epi_length_ < 2.0)
+//        {
+//            px_cur_ = (px_A+px_B)/2.0;
+//            Eigen::Vector2f px_scaled(px_cur_/(1<<search_level_));
+//            bool res;
+////            if(options_.align_1d)
+////                res = align1D(
+////                        cur_frame.pyramid_[search_level_], (px_A-px_B).cast<float>().normalized(),
+////                        patch_with_border_, patch_, options_.align_max_iter, px_scaled, h_inv_);
+////            else
+//                res = align2D(cur_frame.pyramid_[search_level_],patch_with_border_,patch_,options_.align_max_iter,px_scaled);
+//            if(res)
+//            {
+//                px_cur_ = px_scaled*(1<<search_level_);
+//                if(depthFromTriangulation(q,t,cam_->c2f(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_)),cam_->c2f(px_cur_),depth_))
+//                    return true;
+//            }
+//            return false;
+//        }
+//
+//        size_t n_steps = epi_length_/0.7; // one step per pixel
+//        Eigen::Vector2f step = epi_dir_/n_steps;
+//
+//        if(n_steps > options_.max_epi_search_steps)
+//        {
+//            printf("WARNING: skip epipolar search: %zu evaluations, px_lenght=%f, d_min=%f, d_max=%f.\n",
+//                   n_steps, epi_length_, d_min, d_max);
+//            return false;
+//        }
+//
+//        // for matching, precompute sum and sum2 of warped reference patch
+//        int pixel_sum = 0;
+//        int pixel_sum_square = 0;
+//        PatchScore patch_score(patch_);
+//
+//        // now we sample along the epipolar line
+//        Eigen::Vector2f uv = B-step;
+//        Eigen::Vector2i last_checked_pxi(0,0);
+//        ++n_steps;
+//        for(size_t i=0; i<n_steps; ++i, uv+=step)
+//        {
+//            Eigen::Vector2f px(cam_->c2f(uv).x(),cam_->c2f(uv).y());
+//            Eigen::Vector2i pxi(px[0]/(1<<search_level_)+0.5,
+//                         px[1]/(1<<search_level_)+0.5); // +0.5 to round to closest int
+//
+//            if(pxi == last_checked_pxi)
+//                continue;
+//            last_checked_pxi = pxi;
+//
+//            // TODO interpolation would probably be a good idea
+//            uint8_t* cur_patch_ptr = cur_frame.pyramid_[search_level_].data
+//                                     + (pxi[1]-halfpatch_size_)*cur_frame.pyramid_[search_level_].cols
+//                                     + (pxi[0]-halfpatch_size_);
+//            int zmssd = patch_score.computeScore(cur_patch_ptr, cur_frame.pyramid_[search_level_].cols);
+//
+//            if(zmssd < zmssd_best) {
+//                zmssd_best = zmssd;
+//                uv_best = uv;
+//            }
+//        }
+//
+//        if(zmssd_best < PatchScore::threshold())
+//        {
+//            if(options_.subpix_refinement)
+//            {
+//                px_cur_ = Eigen::Vector2f(cam_->c2f(uv_best).x(),cam_->c2f(uv_best).y());
+//                Eigen::Vector2f px_scaled(px_cur_/(1<<search_level_));
+//                bool res;
+////                if(options_.align_1d)
+////                    res = feature_alignment::align1D(
+////                            cur_frame.img_pyr_[search_level_], (px_A-px_B).cast<float>().normalized(),
+////                            patch_with_border_, patch_, options_.align_max_iter, px_scaled, h_inv_);
+////                else
+//                    res = align2D(cur_frame.pyramid_[search_level_],patch_with_border_,patch_,options_.align_max_iter,px_scaled);
+//                if(res)
+//                {
+//                    px_cur_ = px_scaled*(1<<search_level_);
+//                    if(depthFromTriangulation(q,t,cam_->c2f(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_)),cam_->c2f(px_cur_),depth_))
+//                        return true;
+//                }
+//                return false;
+//            }
+//            px_cur_ = Eigen::Vector2f(cam_->c2f(uv_best).x(),cam_->c2f(uv_best).y());
+//
+//            if(depthFromTriangulation(q,t, cam_->c2f(Eigen::Vector2f(ref_ftr.x_,ref_ftr.y_)), cam_->c2f(px_cur_), depth_))
+//                return true;
+//        }
+//        return false;
     }
 
     feature_matcher::feature_matcher(camera *cam):
@@ -241,4 +249,12 @@ namespace my_slam
         }
     }
 
-};
+    Eigen::Vector2f feature_matcher::transform(Eigen::Vector2f ref_px, float depth,Eigen::Quaternionf q,Eigen::Vector3f t)
+    {
+        Eigen::Vector3f Pt_r = cam_->c2f(std::move(ref_px))*depth;
+
+        Eigen::Vector3f Pt_c = q.toRotationMatrix()*Pt_r + t;
+        Eigen::Vector2f cur_px = cam_->f2c(Pt_c);
+        return cur_px;
+    }
+}

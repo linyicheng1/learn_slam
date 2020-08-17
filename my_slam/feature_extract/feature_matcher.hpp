@@ -93,6 +93,7 @@ namespace my_slam
                 const int level_ref,
                 const int level_cur,
                 uint8_t* patch);
+        Eigen::Vector2f transform(Eigen::Vector2f ref_px,float depth,Eigen::Quaternionf q,Eigen::Vector3f t);
     };
 };
 #endif // __FEATURE_MATCHER_H
